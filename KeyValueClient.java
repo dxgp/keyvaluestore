@@ -13,12 +13,13 @@ public class KeyValueClient {
     public static void main(String[] args) throws IOException{
         KeyValueClient client = new KeyValueClient(9999);
         Socket clientSocket = new Socket("localhost",9999);
-        client.put("Gunjan","22");
-        client.put("Shrini","26");
-        client.put("Adwait","23");
-        client.get("Shrini");
-        client.del("Adwait");
-        clientSocket.close();
+        while(true){
+            client.put("Gunjan","22");
+            client.put("Shrini","26");
+            client.put("Adwait","23");
+            client.get("Shrini");
+            client.del("Adwait");
+        }
     }
     // TODO: Add JSON serialization here
     public void put(String key, String value) throws IOException{
