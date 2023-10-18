@@ -31,6 +31,10 @@ public class KeyValueServer {
         }
         public void run(){
             try{
+                /*
+                 * Describes how the query from a certain client is handled.
+                 * Inside the infinite loop, the query is processed.
+                 */
                 while(true){
                     BufferedReader inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                     DataOutputStream outToClient = new DataOutputStream(new DataOutputStream(clientSocket.getOutputStream()));
