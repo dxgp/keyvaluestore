@@ -8,24 +8,50 @@ public class KeyValueServer {
         this.data = new HashMap<>();
     }
     public static void main(String[] args) throws IOException{
-        String clientQuery;
-        String result;
+        /*the main thread will just accept incoming connections, 
+          all queries from a certain client will be handled by a separate thread*/
         KeyValueServer kv_server = new KeyValueServer();
         ServerSocket inSocket = new ServerSocket(9999);
-        Socket connectionSocket = inSocket.accept();
+        inSocket.setReuseAddress(true);
         while(true){
-            BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            DataOutputStream outToClient = new DataOutputStream(new DataOutputStream(connectionSocket.getOutputStream()));
-            while(!inFromClient.ready());
-            clientQuery = inFromClient.readLine();
-            System.out.println(clientQuery);
-            String[] queryTerms = clientQuery.split("\\|");
-            System.out.println(Arrays.toString(queryTerms));
-            result = kv_server.processQuery(queryTerms);
-            outToClient.writeBytes(result);
-            outToClient.flush();
+            Socket connectionSocket = inSocket.accept();
+            RequestHandlerThread client_handler = new RequestHandlerThread(connectionSocket, kv_server);
+            new Thread(client_handler).start();
         }
     }
+    /*
+     * This is a class to create a thread that will infinitely loop and will accept queries from clients.
+     */
+    private static class RequestHandlerThread implements Runnable{
+        private final KeyValueServer kv_server;
+        private final Socket clientSocket;
+        public RequestHandlerThread(Socket clientSocket,KeyValueServer kv_server){
+            this.clientSocket = clientSocket;
+            this.kv_server = kv_server;
+        }
+        public void run(){
+            try{
+                while(true){
+                    BufferedReader inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    DataOutputStream outToClient = new DataOutputStream(new DataOutputStream(clientSocket.getOutputStream()));
+                    while(!inFromClient.ready());
+                    String clientQuery = inFromClient.readLine();
+                    System.out.println(clientQuery);
+                    String[] queryTerms = clientQuery.split("\\|");
+                    System.out.println(Arrays.toString(queryTerms));
+                    String result = kv_server.processQuery(queryTerms);
+                    outToClient.writeBytes(result);
+                    outToClient.flush();
+                }
+            } catch(IOException e){
+                System.out.println(e.toString());
+            }    
+        }
+    }
+    /*
+     * A function to process the queries. Need to add code for the store function.
+     * Maybe consider serialization?
+     */
     public String processQuery(String[] queryTerms){
         if(queryTerms[0].equals("GET")){
             System.out.println("GET QUERY RECEIVED");
@@ -50,5 +76,4 @@ public class KeyValueServer {
             return "AB";
         }
     }
-
 }

@@ -1,0 +1,2 @@
+javac KeyValueServer.java
+java KeyValueServer
