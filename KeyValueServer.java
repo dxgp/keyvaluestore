@@ -4,30 +4,29 @@ import java.util.*;
 
 public class KeyValueServer {
     private Map<String, String> data;
+    static KeyValueServer kv_server;
     KeyValueServer(){
         this.data = new HashMap<>();
     }
     public static void main(String[] args) throws IOException{
         /*the main thread will just accept incoming connections, 
           all queries from a certain client will be handled by a separate thread*/
-        KeyValueServer kv_server = new KeyValueServer();
         ServerSocket inSocket = new ServerSocket(9999);
         inSocket.setReuseAddress(true);
+        KeyValueServer.kv_server = new KeyValueServer();
         while(true){
             Socket connectionSocket = inSocket.accept();
-            RequestHandlerThread client_handler = new RequestHandlerThread(connectionSocket, kv_server);
+            ClientHandlerThread client_handler = new ClientHandlerThread(connectionSocket);
             new Thread(client_handler).start();
         }
     }
     /*
      * This is a class to create a thread that will infinitely loop and will accept queries from clients.
      */
-    private static class RequestHandlerThread implements Runnable{
-        private final KeyValueServer kv_server;
+    private static class ClientHandlerThread implements Runnable{
         private final Socket clientSocket;
-        public RequestHandlerThread(Socket clientSocket,KeyValueServer kv_server){
+        public ClientHandlerThread(Socket clientSocket){
             this.clientSocket = clientSocket;
-            this.kv_server = kv_server;
         }
         public void run(){
             try{
@@ -50,6 +49,26 @@ public class KeyValueServer {
             } catch(IOException e){
                 System.out.println(e.toString());
             }    
+        }
+    }
+    private static class PutQueryHandler implements Runnable{
+        String key;
+        String value;
+        PutQueryHandler(String key, String value){
+            this.key = key;
+            this.value = value;
+        }
+        public void run(){
+            KeyValueServer.kv_server.data.put(key, value);
+        }
+    }
+    private static class GetQueryHandler implements Runnable{
+        String key;
+        GetQueryHandler(String key){
+            this.key = key;
+        }
+        public void run(){
+            KeyValueServer.kv_server.data.get(key);
         }
     }
     /*
