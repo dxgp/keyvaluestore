@@ -4,7 +4,10 @@ import java.util.*;
 public class KeyValueStore {
     private Map<String,String> local_store;
     private Map<String, String> peer_table;
-    private Map<Integer,Socket> peers;
+    // the structure of this map is: (id,(DataOutputStream,BufferedReader))
+    // the DataOutputStream will be used for sending the data out while the buffered reader
+    // will be used for data in.
+    private Map<Integer,ArrayList<Object>> peers;
     int host_id;
     int total_hosts;
     int key_count;
@@ -15,16 +18,24 @@ public class KeyValueStore {
         this.key_count = key_count;
         this.total_hosts = total_hosts;
         this.host_id = host_id;
-        for (int i = 0; i < total_hosts; i++) {
-            if(i!=host_id){
+    }
+    
+    public void initialize_peers(){
+        for (int i = 0; i < this.total_hosts; i++) {
+            if(i!=this.host_id){
                 try{
-                    peers.put(i,new Socket("localhost",10000+i));
+                    Socket out_socket = new Socket("localhost",10000+i);
+                    DataOutputStream out_stream = new DataOutputStream(out_socket.getOutputStream());
+                    BufferedReader in_stream = new BufferedReader(new InputStreamReader(out_socket.getInputStream()));
+                    ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream, in_stream));
+                    this.peers.put(i,peer_streams);
                 } catch(Exception e){
                     System.out.println(e.toString());
                 }
             }
         }
     }
+
     public static void main(String[] args) {
         /*command line arguments in the form:
           1. the id of this host
@@ -32,6 +43,10 @@ public class KeyValueStore {
           3. total key count to get the range of random key generation
         */
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
+
+        while(true){
+            Socket connectionSocket = inSocket.accept();
+        }
         
     }
 }
