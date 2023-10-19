@@ -1,6 +1,7 @@
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 public class KeyValueStore {
     private Map<String,String> local_store;
     private Map<String, String> peer_table;
@@ -9,20 +10,20 @@ public class KeyValueStore {
     // will be used for data in.
     private Map<Integer,ArrayList<Object>> peers;
     int host_id;
-    int total_hosts;
+    int total_host_count;
     int key_count;
-    KeyValueStore(int host_id,int total_hosts,int key_count){
+    KeyValueStore(int host_id,int total_host_count,int key_count){
         this.local_store = new HashMap<>();
         this.peer_table = new HashMap<>();
         this.peers = new HashMap<>();
         this.key_count = key_count;
-        this.total_hosts = total_hosts;
+        this.total_host_count = total_host_count;
         this.host_id = host_id;
         initialize_peers();
     }
 
     public void initialize_peers(){
-        for (int i = 0; i < this.total_hosts; i++) {
+        for (int i = 0; i < this.total_host_count; i++) {
             if(i!=this.host_id){
                 try{
                     Socket out_socket = new Socket("localhost",10000+i);
@@ -35,6 +36,43 @@ public class KeyValueStore {
                 }
             }
         }
+
+    }
+
+    // Broadcasts current operation and key to all other peers
+    private void broadcast_request(String operation, String key) throws IOException {
+        String req = operation + "|" + key;
+        final AtomicInteger count = new AtomicInteger(0);
+        this.peers.forEach((host_id, peer_streams) -> {
+            DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
+            BufferedReader in = (BufferedReader)peer_streams.get(1);
+            SendRequestThread send_thread = new SendRequestThread(dos, in, req,count);
+            new Thread(send_thread).start();
+        });
+    }
+
+    private static class SendRequestThread implements Runnable {
+        DataOutputStream dos;
+        BufferedReader in;
+        String req;
+        AtomicInteger counter;
+        SendRequestThread(DataOutputStream dos, BufferedReader in, String req, AtomicInteger counter) {
+            this.dos = dos;
+            this.in = in;
+            this.req = req;
+            this.counter = counter;
+        }
+        
+        public void run() {
+            try {
+                dos.writeBytes(req);
+                String ack = in.readLine();
+                counter.incrementAndGet();
+            } catch (IOException e) {
+                System.err.println(e);
+            }
+        }
+        
     }
 
     public static void main(String[] args) {
