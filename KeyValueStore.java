@@ -44,10 +44,57 @@ public class KeyValueStore {
           3. total key count to get the range of random key generation
         */
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
-
-        while(true){
-            Socket connectionSocket = inSocket.accept();
+        RequestAcceptThread accept_thread = new RequestAcceptThread(kv_store.host_id);
+        new Thread(accept_thread).start();
+    }
+    /*
+     * A thread to accept incoming requests. Runs an infinite while loop and keeps accepting requests.
+     * Once a request is accepted, it creates a new thread to handle it.
+     */
+    private static class RequestAcceptThread implements Runnable{
+        ServerSocket accept_socket;
+        public RequestAcceptThread(int host_id){
+            try{
+                accept_socket = new ServerSocket(10000+host_id);
+            } catch(IOException e){
+                System.out.println(e.toString());
+            }
         }
-        
+        public void run(){
+            while(true){
+                try{
+                    Socket socket = accept_socket.accept();
+                    // call the request handler thread here
+                    RequestHandlerThread req_handler = new RequestHandlerThread(socket);
+                    new Thread(req_handler).start();
+                } catch(IOException e){
+                    System.out.println(e.toString());
+                }
+            }
+        }
+    }
+    private static class RequestHandlerThread implements Runnable{
+        private final Socket socket;
+        BufferedReader server_in;
+        DataOutputStream server_out;
+        public RequestHandlerThread(Socket socket){
+            this.socket = socket;
+        }
+        public void run(){
+            try{
+                server_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                server_out = new DataOutputStream(new DataOutputStream(socket.getOutputStream()));
+                while(true){ // all requests from this host will be handled by this thread from now on.
+                    while(!server_in.ready());
+                    
+                    // now process using the input here.
+                    
+                    server_out.flush();
+                }
+
+            } catch(IOException e){
+                System.out.println(e.toString());
+            }
+        }
     }
 }
