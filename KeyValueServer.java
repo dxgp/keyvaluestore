@@ -62,6 +62,15 @@ public class KeyValueServer {
             KeyValueServer.kv_server.data.put(key, value);
         }
     }
+    private static class DeleteQueryHandler implements Runnable{
+        String key;
+        DeleteQueryHandler(String key){
+            this.key = key;
+        }
+        public void run(){
+            KeyValueServer.kv_server.data.remove(key)
+        }
+    }
     private static class GetQueryHandler implements Runnable{
         String key;
         GetQueryHandler(String key){
