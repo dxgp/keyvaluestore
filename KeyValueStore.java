@@ -1,21 +1,25 @@
 import java.net.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ThreadLocalRandom;
 public class KeyValueStore {
-    private Map<String,String> local_store;
-    private Map<String, String> peer_table;
-    // the structure of this map is: (id,(DataOutputStream,BufferedReader))
-    // the DataOutputStream will be used for sending the data out while the buffered reader
-    // will be used for data in.
-    private Map<Integer,ArrayList<Object>> peers;
+    private ConcurrentHashMap<String,String> local_store;
+    private ConcurrentHashMap<String,String> peer_table;
+    /* 
+       The structure of this map is: (id,(DataOutputStream,BufferedReader))
+       the DataOutputStream will be used for sending the data out while the buffered reader
+       will be used for data in.
+    */
+    private ConcurrentHashMap<Integer,ArrayList<Object>> peers;
     int host_id;
     int total_host_count;
     int key_count;
     KeyValueStore(int host_id,int total_host_count,int key_count){
-        this.local_store = new HashMap<>();
-        this.peer_table = new HashMap<>();
-        this.peers = new HashMap<>();
+        this.local_store = new ConcurrentHashMap<>();
+        this.peer_table = new ConcurrentHashMap<>();
+        this.peers = new ConcurrentHashMap<>();
         this.key_count = key_count;
         this.total_host_count = total_host_count;
         this.host_id = host_id;
@@ -36,7 +40,6 @@ public class KeyValueStore {
                 }
             }
         }
-
     }
 
     // Broadcasts current operation and key to all other peers
@@ -82,8 +85,10 @@ public class KeyValueStore {
           3. total key count to get the range of random key generation
         */
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
-        RequestAcceptThread accept_thread = new RequestAcceptThread(kv_store.host_id);
+        RequestAcceptThread accept_thread = new RequestAcceptThread(kv_store.host_id,kv_store);
         new Thread(accept_thread).start();
+
+        //write the code to send the requests
     }
     /*
      * A thread to accept incoming requests. Runs an infinite while loop and keeps accepting requests.
@@ -91,9 +96,11 @@ public class KeyValueStore {
      */
     private static class RequestAcceptThread implements Runnable{
         ServerSocket accept_socket;
-        public RequestAcceptThread(int host_id){
+        KeyValueStore kv_store;
+        public RequestAcceptThread(int host_id,KeyValueStore kv_store){
             try{
                 accept_socket = new ServerSocket(10000+host_id);
+                this.kv_store = kv_store;
             } catch(IOException e){
                 System.out.println(e.toString());
             }
@@ -103,7 +110,7 @@ public class KeyValueStore {
                 try{
                     Socket socket = accept_socket.accept();
                     // call the request handler thread here
-                    RequestHandlerThread req_handler = new RequestHandlerThread(socket);
+                    RequestHandlerThread req_handler = new RequestHandlerThread(socket,kv_store);
                     new Thread(req_handler).start();
                 } catch(IOException e){
                     System.out.println(e.toString());
@@ -111,12 +118,17 @@ public class KeyValueStore {
             }
         }
     }
+    /*
+     * This thread will now handle all future requests from this host.
+     */
     private static class RequestHandlerThread implements Runnable{
         private final Socket socket;
         BufferedReader server_in;
         DataOutputStream server_out;
-        public RequestHandlerThread(Socket socket){
+        KeyValueStore kv_store;
+        public RequestHandlerThread(Socket socket,KeyValueStore kv_store){
             this.socket = socket;
+            this.kv_store = kv_store;
         }
         public void run(){
             try{
@@ -124,15 +136,54 @@ public class KeyValueStore {
                 server_out = new DataOutputStream(new DataOutputStream(socket.getOutputStream()));
                 while(true){ // all requests from this host will be handled by this thread from now on.
                     while(!server_in.ready());
-                    
                     // now process using the input here.
-                    
+                    String client_query = server_in.readLine();
+                    System.out.println(client_query);
+                    String[] queryTerms = client_query.split("\\|");
+                    System.out.println(Arrays.toString(queryTerms));
                     server_out.flush();
                 }
-
             } catch(IOException e){
                 System.out.println(e.toString());
             }
         }
     }
+    private static String process_query(String[] query_terms,KeyValueStore kv_store){
+        if(query_terms[0].equals("GET")){
+            System.out.println("GET QUERY RECEIVED");
+            return kv_store.local_store.get(query_terms[1]);
+        }
+        else if(query_terms[0].equals("PUT")){
+            /*
+             * The steps will be:
+             * 1. Check if it already exists in the local content store.
+             * 2. If it does, reply NO.
+             * 3. If not, reply YES.
+             * 
+             * In the case when two hosts would like to put the same key,
+             * the host will send the put request with a random integer.
+             * The receiver will also keep a random integer generated.
+             * If the receiver's random integer is greater, it will reply NO, meaning that
+             * the put function cannot be executed. If not, it must reply with YES.
+             */
+            int random_integer = ThreadLocalRandom.current().nextInt(0, 1000 + 1);
+            System.out.println("PUT QUERY RECEIVED");
+            
+            return "AB\n";
+        }
+        else if(query_terms[0].equals("DEL")){
+            System.out.println("DELETE QUERY RECEIVED");
+            data.remove(query_terms[1]);
+            return "AB\n";
+        }
+        else if(queryTerms[0].equals("STORE")){
+            System.out.println("STORE QUERY RECEIVED");
+            return "AB\n";
+        }
+        else{
+            System.out.println("Invalid query provided");
+            return "AB";
+        }
+    }
+
 }
