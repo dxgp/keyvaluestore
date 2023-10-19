@@ -18,8 +18,9 @@ public class KeyValueStore {
         this.key_count = key_count;
         this.total_hosts = total_hosts;
         this.host_id = host_id;
+        initialize_peers();
     }
-    
+
     public void initialize_peers(){
         for (int i = 0; i < this.total_hosts; i++) {
             if(i!=this.host_id){
