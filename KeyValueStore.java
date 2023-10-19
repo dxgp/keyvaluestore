@@ -87,8 +87,41 @@ public class KeyValueStore {
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
         RequestAcceptThread accept_thread = new RequestAcceptThread(kv_store.host_id,kv_store);
         new Thread(accept_thread).start();
+        
+        // Generate random requests
+    }
 
-        //write the code to send the requests
+    private String generate_random_request(KeyValueStore kv_store) {
+        // Generate random operation
+        String[] operations = {"PUT", "GET", "DEL", "STORE", "EXIT"};
+        int op_index = ThreadLocalRandom.current().nextInt(0, operations.length);
+        String random_op = operations[op_index];
+
+        if (random_op == "PUT" || random_op == "GET" || random_op == "DEL") {
+            String random_key = "";
+            do {
+                // Generate random key
+                int r = ThreadLocalRandom.current().nextInt(0, kv_store.key_count);
+                random_key = Integer.toString(r);
+            }
+            while(kv_store.local_store.containsKey(random_key) && kv_store.peer_table.containsKey(random_key));
+            if (random_op == "PUT") {
+                // Generate random value
+                String random_value = Integer.toString(ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE));
+                String encoded_random_value = Base64.getEncoder().encodeToString(random_value.getBytes());
+
+                // Generate random number for clash resolution
+                String random_num = Integer.toString(ThreadLocalRandom.current().nextInt(0, 1001));
+
+                return random_op + "|" + random_key + "|" + encoded_random_value + "|" + random_num;
+            }
+
+            return random_op + "|" + random_key;
+
+        }
+
+        return random_op;
+
     }
     /*
      * A thread to accept incoming requests. Runs an infinite while loop and keeps accepting requests.
