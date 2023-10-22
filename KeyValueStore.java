@@ -2,8 +2,11 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 public class KeyValueStore {
     private ConcurrentHashMap<String,String> local_store;
     private ConcurrentHashMap<String,String> peer_table;
@@ -69,19 +72,13 @@ public class KeyValueStore {
     // Broadcasts current operation and key to all other peers
     private void broadcast_request(String req, KeyValueStore kv_store) throws IOException,InterruptedException {
         final AtomicInteger count = new AtomicInteger(0);
-        Thread[] send_threads = new Thread[kv_store.total_host_count];
-        this.peers.forEach((host_id, peer_streams) -> {
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(kv_store.total_host_count);
+        this.peers.forEach((host_id,peer_streams)->{
             DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
             BufferedReader in = (BufferedReader)peer_streams.get(1);
-            SendRequestThread send_thread = new SendRequestThread(dos, in, req,count);
-            send_threads[host_id] = new Thread(send_thread);
-            send_threads[host_id].start();
-            //new Thread(send_thread).start();
+            broadcast_executor.execute(new SendRequestThread(dos, in, req, count));
         });
-        for(Thread t: send_threads){
-            t.join();
-        }
-        //System.out.println("ALL BROADCASTS DONE");
+        broadcast_executor.awaitTermination(50L, TimeUnit.SECONDS);
         if(count.intValue()==kv_store.total_host_count-1){
             // the request was successful the key can now be put into the local store and
             // the peer table changes need to be broadcast
