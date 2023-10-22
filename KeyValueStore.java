@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 public class KeyValueStore {
     private ConcurrentHashMap<String,String> local_store;
     private ConcurrentHashMap<String,String> peer_table;
-    private ConcurrentHashMap<String,String> keys_generating; // HashMap to store the keys currently being generated
+    private ConcurrentHashMap<String,Integer> keys_random_pairs; // HashMap to store the keys currently being generated
     /* 
        The structure of this map is: (id,(DataOutputStream,BufferedReader))
        the DataOutputStream will be used for sending the data out while the buffered reader
@@ -24,6 +24,7 @@ public class KeyValueStore {
         this.local_store = new ConcurrentHashMap<>();
         this.peer_table = new ConcurrentHashMap<>();
         this.peers = new ConcurrentHashMap<>();
+
         this.key_count = key_count;
         this.total_host_count = total_host_count;
         this.host_id = host_id;
@@ -142,7 +143,9 @@ public class KeyValueStore {
                 String encoded_random_value = Base64.getEncoder().encodeToString(random_value.getBytes());
 
                 // Generate random number for clash resolution
-                String random_num = Integer.toString(ThreadLocalRandom.current().nextInt(0, 1001));
+                int rand_num = ThreadLocalRandom.current().nextInt(0, 1001);
+                kv_store.keys_random_pairs.put(random_key, rand_num);
+                String random_num = Integer.toString(rand_num);
 
                 return random_op + "|" + random_key + "|" + encoded_random_value + "|" + random_num + "\n";
             }
@@ -243,18 +246,21 @@ public class KeyValueStore {
              * At that time, since between every two nodes, the keys contesting will be different, it's possible
              * that none of them will win. (Maybe add a HashMap to store the random integer contesting for each key?)
              */
-            int self_random = ThreadLocalRandom.current().nextInt(0, 1000 + 1);
+            
             System.out.println("PUT QUERY RECEIVED");
             // peer table does not contain the entries for the node at which it is stored at.
             if(kv_store.local_store.containsKey(key) || kv_store.peer_table.containsKey(key)){
                 return "NO";
             } else{
-                if(kv_store.keys_generating.containsKey(key)){
+                if(kv_store.keys_random_pairs.containsKey(key)){
+                    int self_random = kv_store.keys_random_pairs.get(key);
+
                     if(recvd_random>self_random){
                         return "YES";
                     } else{
                         return "NO";
                     }
+                    
                 } else{
                     return "YES";
                 }
