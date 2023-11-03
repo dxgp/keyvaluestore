@@ -42,7 +42,7 @@ public class KeyValueStore {
                         ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream, in_stream));
                         this.peers.put(i,peer_streams);
                         connection_established = true;
-                    } catch(Exception e){}
+                    } catch(Exception e){System.out.println("Connection failed..."+ " with host "+i);}
                 }
             }
         }
@@ -53,19 +53,39 @@ public class KeyValueStore {
           1. the id of this host
           2. total hosts
           3. total key count to get the range of random key generation
+          4. debug mode
         */
+        System.out.println("Starting...");
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
         RequestAcceptThread accept_thread = new RequestAcceptThread(kv_store.host_id,kv_store);
+        System.out.println("Request accept thread started...");
         kv_store.initialize_peers();
         new Thread(accept_thread).start();
-        //Generate random requests
-        if(kv_store.host_id==0){
-            for(int i=0;i<3;i++){
+        if(args.length==4){
+            //run in debug mode
+            System.out.println("DEBUG MODE STARTED...");
+            while(true){
                 try{
-                    String request = kv_store.generate_random_request(kv_store);
-                    System.out.println("GENERATED REQUEST:"+request);
-                    kv_store.broadcast_request(request, kv_store);
+                    Scanner sc = new Scanner(System.in);
+                    System.out.println("Enter Query:");
+                    String query = sc.nextLine();
+                    kv_store.broadcast_request(query, kv_store);
+                    if(query.equals("EXIT")){
+                        return;
+                    }
                 } catch(Exception e){}
+            }
+        }
+        //Generate random requests
+        else{
+            if(kv_store.host_id==0){
+                for(int i=0;i<3;i++){
+                    try{
+                        String request = kv_store.generate_random_request(kv_store);
+                        System.out.println("GENERATED REQUEST:"+request);
+                        kv_store.broadcast_request(request, kv_store);
+                    } catch(Exception e){}
+                }
             }
         }
     }
@@ -79,6 +99,7 @@ public class KeyValueStore {
             BufferedReader in = (BufferedReader)peer_streams.get(1);
             broadcast_executor.execute(new SendRequestThread(dos, in, req, count));
         });
+        System.out.println("Request broadcasted.");
         broadcast_executor.awaitTermination(50L, TimeUnit.SECONDS);
         if(count.intValue()==kv_store.total_host_count-1){
             // the request was successful the key can now be put into the local store and
@@ -93,7 +114,6 @@ public class KeyValueStore {
     }
 
     private static class SendRequestThread implements Runnable {
-        
         DataOutputStream dos;
         BufferedReader in;
         String req;
@@ -106,7 +126,6 @@ public class KeyValueStore {
         }
         
         public void run() {
-            System.out.println("SendRequestThread Created.");
             try {
                 dos.writeBytes(req);
                 while(!in.ready());
@@ -149,13 +168,9 @@ public class KeyValueStore {
 
                 return random_op + "|" + random_key + "|" + encoded_random_value + "|" + random_num + "\n";
             }
-
             return random_op + "|" + random_key + "\n";
-
         }
-
         return random_op + "\n";
-
     }
     /*
      * A thread to accept incoming requests. Runs an infinite while loop and keeps accepting requests.
@@ -218,15 +233,16 @@ public class KeyValueStore {
     }
     private static String process_query(String[] query_terms,KeyValueStore kv_store){
         String query = query_terms[0];
-        String key = query_terms[1];
-        String value = query_terms[2];
         if(query.equals("GET")){
+            String key = query_terms[1];
             System.out.println("GET QUERY RECEIVED");
-            return kv_store.local_store.get(query_terms[1]);
+            return kv_store.local_store.get(key);
         }
         else if(query.equals("PUT")){
+            String key = query_terms[1];
+            String rand = query_terms[3];
             System.out.println("PUT QUERY RECEIVED FOR KEY:"+key);
-            int recvd_random = Integer.parseInt(query_terms[3]);
+            int recvd_random = Integer.parseInt(rand);
             /*
              * The steps will be:
              * 1. Check if it already exists in the local content store.
@@ -267,6 +283,7 @@ public class KeyValueStore {
             }
         }
         else if(query.equals("DEL")){
+            String key = query_terms[1];
             System.out.println("DELETE QUERY RECEIVED");
             kv_store.local_store.remove(key);
             return "AB\n";
