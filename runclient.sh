@@ -1,2 +1,0 @@
-javac KeyValueClient.java
-java KeyValueClient
