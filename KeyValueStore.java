@@ -49,17 +49,13 @@ public class KeyValueStore {
         System.out.println("Connection established will all nodes. Now proceeding...");
     }
 
-    private String[] parseRequest(String req) {
-        String[] queryTerms = req.split("\\|");
-        return queryTerms;
-    }
+    /*command line arguments in the form:
+    1. the id of this host
+    2. total hosts
+    3. total key count to get the range of random key generation
+    4. debug mode
+    */
     public static void main(String[] args) {
-        /*command line arguments in the form:
-          1. the id of this host
-          2. total hosts
-          3. total key count to get the range of random key generation
-          4. debug mode
-        */
         System.out.println("Starting...");
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
         RequestAcceptThread accept_thread = new RequestAcceptThread(kv_store.host_id,kv_store);
@@ -71,7 +67,6 @@ public class KeyValueStore {
             System.out.println("DEBUG MODE STARTED...");
             while(true){
                 try{
-                    System.out.println("IN MAINN*****************");
                     Scanner sc = new Scanner(System.in);
                     System.out.println("Enter Query:");
                     String query = sc.nextLine();
@@ -96,6 +91,8 @@ public class KeyValueStore {
         }
     }
 
+
+    
     // Broadcasts current operation and key to all other peers
     private void broadcast_request(String req, KeyValueStore kv_store) throws IOException,InterruptedException {
         final AtomicInteger count = new AtomicInteger(0);
@@ -115,14 +112,13 @@ public class KeyValueStore {
             String key = query_terms[1];
             String value = query_terms[2];
             this.local_store.put(key, value);
-
-            // TODO: Need to create another message type to broadcast the change in the peer table.
             this.broadcastPeerTableChange(key, broadcast_executor);
         } else{
             System.out.println("REQ FAILED++++++");
             // the request was unsuccessful, this key is already in use.
             // maybe the change has not been propagated or someone else generated
             // the same key at the same time with a higher random integer.
+            System.out.println("REQUEST UNSUCCESSFUL");
         }
     }
 
@@ -136,6 +132,15 @@ public class KeyValueStore {
             broadcast_executor.execute(new SendRequestThread(dos, in, req, count));
         });
     }
+
+
+
+/*
+   ┏┳┓┓┏┳┓┏┓┏┓┳┓┏┓
+    ┃ ┣┫┣┫┣ ┣┫┃┃┗┓
+    ┻ ┛┗┛┗┗┛┛┗┻┛┗┛
+ */
+              
 
     private static class SendRequestThread implements Runnable {
         DataOutputStream dos;
@@ -151,14 +156,13 @@ public class KeyValueStore {
         
         public void run() {
             try {
-                System.out.println("QQQQ " + req);
+                System.out.println("REQUEST SENT:" + req);
                 dos.writeBytes(req);
                 while(!in.ready());
                 String ack = in.readLine();
                 if(ack.equals("YES")){
                     counter.incrementAndGet();
                 }
-
             } catch (IOException e) {
                 System.err.println(e);
             }
@@ -225,6 +229,9 @@ public class KeyValueStore {
             }
         }
     }
+
+
+
     /*
      * This thread will now handle all future requests from this host.
      */
@@ -247,7 +254,6 @@ public class KeyValueStore {
                     // now process using the input here.
                     char[] buf = new char[100];
                     server_in.read(buf);
-                    System.out.println("CLIENt Q: " + buf);
                     String client_query = new String(buf);
                     String[] queryTerms = this.kv_store.parseRequest(client_query);
                     System.out.println("Request received"+Arrays.toString(queryTerms));
@@ -260,6 +266,12 @@ public class KeyValueStore {
             }
         }
     }
+
+
+
+    /*
+     * A function to process the query received inside the RequestHandlerThread
+     */
     private static String process_query(String[] query_terms,KeyValueStore kv_store){
         String query = query_terms[0];
         if(query.equals("GET")){
@@ -338,5 +350,40 @@ public class KeyValueStore {
             return "AB";
         }
     }
+    private String[] parseRequest(String req) {
+        String[] queryTerms = req.split("\\|");
+        return queryTerms;
+    }
 
+    private String generate_random_request(KeyValueStore kv_store) {
+        // Generate random operation
+        // removed exit from here. Cannot call EXIT until the end.
+        String[] operations = {"PUT", "GET", "DEL", "STORE"};
+        int op_index = ThreadLocalRandom.current().nextInt(0, operations.length);
+        String random_op = operations[op_index];
+        
+        if (random_op == "PUT" || random_op == "GET" || random_op == "DEL") {
+            String random_key = "";
+            do {
+                // Generate random key
+                int r = ThreadLocalRandom.current().nextInt(0, kv_store.key_count);
+                random_key = Integer.toString(r);
+            }
+            while(kv_store.local_store.containsKey(random_key) && kv_store.peer_table.containsKey(random_key));
+            if (random_op == "PUT") {
+                // Generate random value
+                String random_value = Integer.toString(ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE));
+                String encoded_random_value = Base64.getEncoder().encodeToString(random_value.getBytes());
+                
+                // Generate random number for clash resolution
+                int rand_num = ThreadLocalRandom.current().nextInt(0, 1001);
+                kv_store.keys_random_pairs.put(random_key, rand_num);
+                String random_num = Integer.toString(rand_num);
+                
+                return random_op + "|" + random_key + "|" + encoded_random_value + "|" + random_num + "\n";
+            }
+            return random_op + "|" + random_key + "\n";
+        }
+        return random_op + "\n";
+    }
 }
