@@ -108,6 +108,7 @@ public class KeyValueStore {
         System.out.println("Request broadcasted.");
         broadcast_executor.awaitTermination(2L, TimeUnit.SECONDS);
         if(count.intValue()==kv_store.total_host_count-1){
+            System.out.println("REQ APPROVED++++++");
             // the request was successful the key can now be put into the local store and
             // the peer table changes need to be broadcast
             String[] query_terms = this.parseRequest(req);
@@ -118,6 +119,7 @@ public class KeyValueStore {
             // TODO: Need to create another message type to broadcast the change in the peer table.
             this.broadcastPeerTableChange(key, broadcast_executor);
         } else{
+            System.out.println("REQ FAILED++++++");
             // the request was unsuccessful, this key is already in use.
             // maybe the change has not been propagated or someone else generated
             // the same key at the same time with a higher random integer.
@@ -249,7 +251,7 @@ public class KeyValueStore {
                     String client_query = new String(buf);
                     String[] queryTerms = this.kv_store.parseRequest(client_query);
                     System.out.println("Request received"+Arrays.toString(queryTerms));
-                    //process_query(queryTerms, kv_store);
+                    process_query(queryTerms, kv_store);
                     server_out.writeBytes("\n");
                     server_out.flush();
                 }
@@ -318,6 +320,18 @@ public class KeyValueStore {
         else if(query.equals("STORE")){
             // TODO: Figure out a way to send its local store
             return "AB\n";
+        }
+        else if(query.equals("PTUPDATE")) {
+            String host_id = query_terms[1];
+            String key = query_terms[2];
+            // Update peer table
+            if (kv_store.peer_table.containsKey(key)) {
+                System.out.println("ERROR: Key " + key + " already exists in peer table\n");
+                return "ERR";
+            } else {
+                kv_store.peer_table.put(key, host_id);
+                return "AB";
+            }
         }
         else{
             System.out.println("Invalid query provided");
