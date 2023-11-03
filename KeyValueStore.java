@@ -127,6 +127,7 @@ public class KeyValueStore {
         
         public void run() {
             try {
+                System.out.println("QQQQ " + req);
                 dos.writeBytes(req);
                 while(!in.ready());
                 String ack = in.readLine();
@@ -218,8 +219,12 @@ public class KeyValueStore {
                 server_out = new DataOutputStream(new DataOutputStream(socket.getOutputStream()));
                 while(true){ // all requests from this host will be handled by this thread from now on.
                     while(!server_in.ready());
+
                     // now process using the input here.
-                    String client_query = server_in.readLine();
+                    char[] buf = new char[100];
+                    server_in.read(buf);
+                    System.out.println("CLIENt Q: " + buf);
+                    String client_query = new String(buf);
                     String[] queryTerms = client_query.split("\\|");
                     System.out.println("Request received"+Arrays.toString(queryTerms));
                     //process_query(queryTerms, kv_store);
