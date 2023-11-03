@@ -42,11 +42,16 @@ public class KeyValueStore {
                         ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream, in_stream));
                         this.peers.put(i,peer_streams);
                         connection_established = true;
-                    } catch(Exception e){System.out.println("Connection failed..."+ " with host "+i);}
+                    } catch(Exception e){}
                 }
             }
         }
         System.out.println("Connection established will all nodes. Now proceeding...");
+    }
+
+    private String[] parseRequest(String req) {
+        String[] queryTerms = req.split("\\|");
+        return queryTerms;
     }
     public static void main(String[] args) {
         /*command line arguments in the form:
@@ -66,6 +71,7 @@ public class KeyValueStore {
             System.out.println("DEBUG MODE STARTED...");
             while(true){
                 try{
+                    System.out.println("IN MAINN*****************");
                     Scanner sc = new Scanner(System.in);
                     System.out.println("Enter Query:");
                     String query = sc.nextLine();
@@ -73,7 +79,7 @@ public class KeyValueStore {
                     if(query.equals("EXIT")){
                         return;
                     }
-                } catch(Exception e){}
+                } catch(Exception e){System.out.println(e);}
             }
         }
         //Generate random requests
@@ -100,17 +106,33 @@ public class KeyValueStore {
             broadcast_executor.execute(new SendRequestThread(dos, in, req, count));
         });
         System.out.println("Request broadcasted.");
-        broadcast_executor.awaitTermination(50L, TimeUnit.SECONDS);
+        broadcast_executor.awaitTermination(2L, TimeUnit.SECONDS);
         if(count.intValue()==kv_store.total_host_count-1){
             // the request was successful the key can now be put into the local store and
             // the peer table changes need to be broadcast
+            String[] query_terms = this.parseRequest(req);
+            String key = query_terms[1];
+            String value = query_terms[2];
+            this.local_store.put(key, value);
 
             // TODO: Need to create another message type to broadcast the change in the peer table.
+            this.broadcastPeerTableChange(key, broadcast_executor);
         } else{
             // the request was unsuccessful, this key is already in use.
             // maybe the change has not been propagated or someone else generated
             // the same key at the same time with a higher random integer.
         }
+    }
+
+    private void broadcastPeerTableChange(String key, ExecutorService broadcast_executor) {
+        // PTUPDATE|host_id|key
+        String req = "PTUPDATE|" + this.host_id + "|" + key;
+        final AtomicInteger count = new AtomicInteger(0);
+        this.peers.forEach((host_id,peer_streams)->{
+            DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
+            BufferedReader in = (BufferedReader)peer_streams.get(1);
+            broadcast_executor.execute(new SendRequestThread(dos, in, req, count));
+        });
     }
 
     private static class SendRequestThread implements Runnable {
@@ -225,7 +247,7 @@ public class KeyValueStore {
                     server_in.read(buf);
                     System.out.println("CLIENt Q: " + buf);
                     String client_query = new String(buf);
-                    String[] queryTerms = client_query.split("\\|");
+                    String[] queryTerms = this.kv_store.parseRequest(client_query);
                     System.out.println("Request received"+Arrays.toString(queryTerms));
                     //process_query(queryTerms, kv_store);
                     server_out.writeBytes("\n");
