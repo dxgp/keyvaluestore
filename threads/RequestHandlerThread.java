@@ -19,8 +19,9 @@ public class RequestHandlerThread implements Runnable{
             server_out = new DataOutputStream(new DataOutputStream(socket.getOutputStream()));
             while(true){ // all requests from this host will be handled by this thread from now on.
                 while(!server_in.ready());
-                //char[] buf = new char[100];
-                String buf = server_in.readLine();
+                
+                char[] buf = new char[100];
+                server_in.read(buf);
                 String client_query = new String(buf);
                 String[] queryTerms = this.kv_store.parseRequest(client_query);
                 System.out.println("Request received"+Arrays.toString(queryTerms));
