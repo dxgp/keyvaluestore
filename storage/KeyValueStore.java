@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import threads.SendRequestThread;
 import threads.TotalStore;
+import threads.SendPutRequestThread;
 
 public class KeyValueStore {
     public ConcurrentHashMap<String,String> local_store;
@@ -29,7 +30,7 @@ public class KeyValueStore {
        will be used for data in.
     */
 
-    private ConcurrentHashMap<Integer,ArrayList<Object>> peers;
+    public ConcurrentHashMap<Integer,ArrayList<Object>> peers;
     public int host_id;
     public int total_host_count;
     public int key_count;
@@ -62,26 +63,43 @@ public class KeyValueStore {
         System.out.println("Connection established will all nodes. Now proceeding...");
     }
 
-    public void broadcast_request(String req, KeyValueStore kv_store) throws IOException,InterruptedException {
-        final AtomicInteger count = new AtomicInteger(0);
+    public void broadcast_request(String req, KeyValueStore kv_store) throws IOException, InterruptedException {
+        
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(kv_store.total_host_count);
-        TotalStore total_store = new TotalStore();
+        String req_type = parseRequest(req)[0].trim();
+
+        if (req_type.equals("PUT")) {
+            this.broadcastPutRequest(req, broadcast_executor, kv_store);
+        }
+
+        // TODO: Make separate thread and sending function for STORE
+        // TotalStore total_store = new TotalStore();
+        // this.peers.forEach((host_id,peer_streams)->{
+        //     DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
+        //     BufferedReader in = (BufferedReader)peer_streams.get(1);
+        //     if(parseRequest(req)[0].equals("STORE")){
+        //         broadcast_executor.execute(new SendRequestThread(dos, in, req,total_store));
+        //     }
+        // });
+        
+        broadcast_executor.shutdownNow();
+        // if(parseRequest(req)[0].trim().equals("STORE")){
+        //     System.out.println(total_store.total);
+        // }
+ 
+    }
+
+    public void broadcastPutRequest(String req, ExecutorService broadcast_executor, KeyValueStore kv_store) throws InterruptedException {
+        final AtomicInteger count = new AtomicInteger(0);
         this.peers.forEach((host_id,peer_streams)->{
             DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
             BufferedReader in = (BufferedReader)peer_streams.get(1);
-            if(parseRequest(req)[0].equals("STORE")){
-                broadcast_executor.execute(new SendRequestThread(dos, in, req,total_store));
-            }
-            else{
-                broadcast_executor.execute(new SendRequestThread(dos, in, req, count));
-            }
+            broadcast_executor.execute(new SendPutRequestThread(dos, in, req, count));
         });
+
         broadcast_executor.awaitTermination(2L, TimeUnit.SECONDS);
-        broadcast_executor.shutdownNow();
-        if(parseRequest(req)[0].trim().equals("STORE")){
-            System.out.println(total_store.total);
-        }
-        else if(count.intValue()==kv_store.total_host_count-1){
+
+        if(count.intValue()==kv_store.total_host_count-1){
             System.out.println("REQ SUCCESSFUL");
             // the request was successful the key can now be put into the local store and
             // the peer table changes need to be broadcast
