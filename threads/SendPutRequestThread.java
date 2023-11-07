@@ -29,9 +29,11 @@ public class SendPutRequestThread implements Runnable {
                 buf = (char) in.read();
                 response += buf;
             }
+            response = response.trim();
             if(response.equals("YES")){
                 count.incrementAndGet();
             }
+            dos.flush();
         } catch(Exception e){
             System.out.println("Exception occured when writing query to output stream in SendPutRequestThread");
         }

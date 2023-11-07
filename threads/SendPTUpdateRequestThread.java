@@ -25,9 +25,11 @@ public class SendPTUpdateRequestThread implements Runnable {
                 buf = (char) in.read();
                 response += buf;
             }
+            response = response.trim();
             if(!response.equals("EXECUTED")){
                 System.out.println("FAILED TO EXECUTE PTUPDATE for host "+host_id);
             }
+            dos.flush();
         } catch(Exception e){}
     }
 }

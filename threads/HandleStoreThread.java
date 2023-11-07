@@ -1,7 +1,8 @@
 package threads;
 
-import java.io.ObjectOutputStream;
+import java.io.DataOutputStream;
 import java.net.Socket;
+import java.util.Map;
 
 import storage.KeyValueStore;
 
@@ -14,8 +15,14 @@ public class HandleStoreThread implements Runnable {
     }
     public void run(){
         try{
-            ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
-            oos.writeObject(kv_store.local_store);
+            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            String final_data = "";
+            for (Map.Entry<String,String> entry : kv_store.local_store.entrySet()) {
+                final_data = final_data + entry.getKey() + " " + entry.getValue() + "|";
+            } 
+            final_data = final_data + "\n";
+            dos.writeBytes(final_data);
+            dos.flush();
         } catch(Exception e){}
     }
 }

@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,9 +57,8 @@ public class KeyValueStore{
                         DataOutputStream out_stream = new DataOutputStream(out_socket.getOutputStream());
                         InputStream sis = out_socket.getInputStream();
                         BufferedReader in_stream = new BufferedReader(new InputStreamReader(sis));
-                        ObjectInputStream obj_input_stream = new ObjectInputStream(sis);
                         System.out.println("REACHED HERE TOO.");
-                        ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream,in_stream,obj_input_stream));
+                        ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream,in_stream));
                         this.peers.put(i, peer_streams);
                         connected = true;
                     } catch(Exception e){}
@@ -71,18 +69,27 @@ public class KeyValueStore{
     }
     public void execute_put(String key,String value){
         final AtomicInteger count = new AtomicInteger(0);
-        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        // ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
         this.peers.forEach((host_id,peer_streams)->{
+            System.out.println("Sent to host id:"+host_id);
             DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
             BufferedReader in = (BufferedReader)peer_streams.get(1);
-            broadcast_executor.execute(new SendPutRequestThread(dos, in, key, value, count,self_random));
+            Thread th = new Thread(new SendPutRequestThread(dos, in, key, value, count,self_random));
+            th.start();
+            try {
+                th.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            //broadcast_executor.execute(new SendPutRequestThread(dos, in, key, value, count,self_random));
         });
-        broadcast_executor.shutdown();
-        try{
-            broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
-        } catch(Exception e){}
-        if(count.intValue()==this.total_host_count - 1){
+        // broadcast_executor.shutdown();
+        // try{
+        //     broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
+        // } catch(Exception e){}
+        System.out.println("COUNT VAL:"+count.intValue());
+        if(count.intValue()==(this.total_host_count - 1)){
             // Request successful
             this.local_store.put(key, value);
             execute_ptupdate(key, this.host_id);
@@ -96,11 +103,13 @@ public class KeyValueStore{
     public void execute_get(String key){
         System.out.println("Executing GET "+key);
         int key_holder = peer_table.get(key);
+        System.out.println("KEY HOLDER IS:"+key_holder);
         DataOutputStream dos = (DataOutputStream)(peers.get(key_holder)).get(0);
         BufferedReader in = (BufferedReader)(peers.get(key_holder)).get(1);
         String request = "GET "+key + "\n";
         try{
             dos.writeBytes(request);
+            System.out.println("BYTES WRITTEN");
             while(!in.ready());
             char buf = '\0';
             String response = "";
@@ -115,12 +124,24 @@ public class KeyValueStore{
     }
     public void execute_store(){
         ConcurrentHashMap<String,String> total_map = new ConcurrentHashMap<String,String>();
-        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        //ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         this.peers.forEach((h_id,peer_streams)->{
             DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
-            ObjectInputStream ois = (ObjectInputStream)peer_streams.get(2);
-            broadcast_executor.execute(new SendStoreRequestThread(dos,ois,h_id,total_map));
+            BufferedReader in = (BufferedReader)peer_streams.get(1);
+            Thread th = new Thread(new SendStoreRequestThread(dos,in,h_id,total_map));
+            th.start();
+            try {
+                th.join();
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            //broadcast_executor.execute(new SendStoreRequestThread(dos,in,h_id,total_map));
         });
+        // broadcast_executor.shutdown();
+        // try{
+        //     broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
+        // } catch(Exception e){}
         System.out.println("**TABLE**");
         total_map.forEach((key,value)->{
             System.out.println(key + "\t \t" +value);
@@ -131,7 +152,7 @@ public class KeyValueStore{
         this.peers.forEach((h_id,peer_streams)->{
             DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
             BufferedReader in = (BufferedReader)peer_streams.get(1);
-            broadcast_executor.execute(new SendPTUpdateRequestThread(dos,in,key,h_id));
+            broadcast_executor.execute(new SendPTUpdateRequestThread(dos,in,key,host_id));
         });
         broadcast_executor.shutdown();
         try{

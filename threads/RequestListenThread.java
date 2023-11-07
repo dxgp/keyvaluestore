@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
 
 public class RequestListenThread implements Runnable{
     int host_id;
@@ -32,7 +33,8 @@ public class RequestListenThread implements Runnable{
                     buf = (char) sender_in.read();
                     query += buf;
                 }
-                String[] query_terms = query.split("// ");
+                String[] query_terms = query.trim().split("\\ ");
+                System.out.println("QUERY RECEIVED:"+Arrays.toString(query_terms));
                 if(query_terms[0].equals("PUT")){
                     String key = query_terms[1];
                     String value = query_terms[2];
@@ -46,6 +48,10 @@ public class RequestListenThread implements Runnable{
                 } else if(query_terms[0].equals("DELETE")){
                     String key = query_terms[1];
                     kv_store.handle_delete(key, socket);
+                } else if(query_terms[0].equals("PTUPDATE")){
+                    String key = query_terms[1];
+                    int host_id = Integer.parseInt(query_terms[2]);
+                    kv_store.handle_ptupdate(key, host_id, socket);
                 } else{
                     System.out.println("INVALID QUERY RECEIVED");
                 }

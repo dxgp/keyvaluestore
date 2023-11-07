@@ -1,14 +1,17 @@
+import java.util.Arrays;
 import java.util.Scanner;
 import storage.KeyValueStore;
 public class Program{
     public static void main(String[] args) {
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
         kv_store.initialize_peers();
+        Scanner sc = new Scanner(System.in);
         while(true){
             try{
-                Scanner sc = new Scanner(System.in);
                 String query = sc.nextLine();
-                String[] query_terms = query.split("// ");
+                query = query.trim();
+                String[] query_terms = query.split("\\ ");
+                System.out.println("QUERY:"+Arrays.toString(query_terms));
                 if(query_terms[0].equals("PUT")){
                     String key = query_terms[1];
                     String value = query_terms[2];

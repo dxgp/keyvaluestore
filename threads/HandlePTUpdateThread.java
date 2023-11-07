@@ -26,6 +26,7 @@ public class HandlePTUpdateThread implements Runnable {
                 kv_store.peer_table.put(key, host_id);
                 dos.writeBytes("EXECUTED\n");
             }
+            dos.flush();
         } catch(Exception e){}
     }
 }

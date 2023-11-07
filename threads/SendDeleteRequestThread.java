@@ -23,9 +23,11 @@ public class SendDeleteRequestThread implements Runnable{
                 buf = (char) in.read();
                 response += buf;
             }
+            response = response.trim();
             if(!response.equals("EXECUTED")){
                 System.out.println("FAILED TO EXECUTE DELETE");
             }
+            dos.flush();
         } catch(Exception e){}
     }
 }
