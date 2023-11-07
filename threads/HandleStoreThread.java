@@ -23,6 +23,7 @@ public class HandleStoreThread implements Runnable {
             final_data = final_data + "\n";
             dos.writeBytes(final_data);
             dos.flush();
+            dos.close();
         } catch(Exception e){}
     }
 }

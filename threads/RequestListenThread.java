@@ -23,9 +23,13 @@ public class RequestListenThread implements Runnable{
     public void run(){
         System.out.println("Now listening for incoming connections");
         try{
+            System.out.println("BEFORE ACCEPT");
             socket = accept_socket.accept();
+            System.out.println("AFTER ACCEPT");
             BufferedReader sender_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            
             while(true){
+                System.out.println("Listening....");
                 while(!sender_in.ready());
                 char buf = '\0';
                 String query = "";
@@ -55,6 +59,7 @@ public class RequestListenThread implements Runnable{
                 } else{
                     System.out.println("INVALID QUERY RECEIVED");
                 }
+                System.out.println("**RECEIVED QUERY PROCESSING FINISHED**");
             }
         } catch(Exception e){}
     }

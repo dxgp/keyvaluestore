@@ -1,5 +1,7 @@
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
+
 import storage.KeyValueStore;
 public class Program{
     public static void main(String[] args) {
@@ -27,6 +29,8 @@ public class Program{
                 } else{
                     System.out.println("INVALID QUERY PROVIDED");
                 }
+                System.out.println("**QUERY EXECUTION COMPLETE**");
+                TimeUnit.MILLISECONDS.sleep(50);
             } catch(Exception e){}
         }
     }

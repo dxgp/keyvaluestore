@@ -22,9 +22,9 @@ public class SendPutRequestThread implements Runnable {
         String request = "PUT "+key+" "+value+" "+self_random+"\n";
         try{
             dos.writeBytes(request);
-            while(!in.ready());
             char buf = '\0';
             String response = "";
+            while(!in.ready());
             while(!(buf == '\n')){
                 buf = (char) in.read();
                 response += buf;

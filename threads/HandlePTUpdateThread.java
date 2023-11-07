@@ -27,6 +27,7 @@ public class HandlePTUpdateThread implements Runnable {
                 dos.writeBytes("EXECUTED\n");
             }
             dos.flush();
+            dos.close();
         } catch(Exception e){}
     }
 }

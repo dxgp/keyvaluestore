@@ -55,8 +55,7 @@ public class KeyValueStore{
                         Socket out_socket = new Socket("localhost",10000+i);
                         System.out.println("REACHED HERE.");
                         DataOutputStream out_stream = new DataOutputStream(out_socket.getOutputStream());
-                        InputStream sis = out_socket.getInputStream();
-                        BufferedReader in_stream = new BufferedReader(new InputStreamReader(sis));
+                        BufferedReader in_stream = new BufferedReader(new InputStreamReader(out_socket.getInputStream()));
                         System.out.println("REACHED HERE TOO.");
                         ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream,in_stream));
                         this.peers.put(i, peer_streams);
@@ -132,6 +131,7 @@ public class KeyValueStore{
             th.start();
             try {
                 th.join();
+                
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();

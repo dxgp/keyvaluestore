@@ -41,6 +41,7 @@ public class HandlePutThread implements Runnable {
                 }
             }
             dos.flush();
+            dos.close();
         } catch(Exception e){}
     }
 }
