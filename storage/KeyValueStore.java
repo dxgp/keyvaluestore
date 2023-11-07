@@ -2,167 +2,173 @@ package storage;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import threads.SendRequestThread;
-import threads.TotalStore;
 import threads.SendPutRequestThread;
+import threads.SendPTUpdateRequestThread;
+import threads.SendDeleteRequestThread;
+import threads.SendStoreRequestThread;
+import threads.HandlePutThread;
+import threads.HandleGetThread;
+import threads.HandlePTUpdateThread;
+import threads.HandleStoreThread;
+import threads.HandleDeleteThread;
+import threads.RequestListenThread;
 
-public class KeyValueStore {
+
+public class KeyValueStore{
     public ConcurrentHashMap<String,String> local_store;
-    public ConcurrentHashMap<String,String> peer_table;
+    public ConcurrentHashMap<String,Integer> peer_table;
     public ConcurrentHashMap<String,Integer> keys_random_pairs;
-    /* 
-       The structure of this map is: (id,(DataOutputStream,BufferedReader))
-       the DataOutputStream will be used for sending the data out while the buffered reader
-       will be used for data in.
-    */
-
     public ConcurrentHashMap<Integer,ArrayList<Object>> peers;
+
     public int host_id;
     public int total_host_count;
-    public int key_count;
+
     public KeyValueStore(int host_id,int total_host_count,int key_count){
-        this.local_store = new ConcurrentHashMap<>();
-        this.peer_table = new ConcurrentHashMap<>();
-        this.peers = new ConcurrentHashMap<>();
-        this.keys_random_pairs = new ConcurrentHashMap<>();
-        this.key_count = key_count;
+        this.local_store = new ConcurrentHashMap<String,String>(){};
+        this.peer_table = new ConcurrentHashMap<String,Integer>();
+        this.keys_random_pairs = new ConcurrentHashMap<String,Integer>();
+        this.peers = new ConcurrentHashMap<Integer,ArrayList<Object>>();
         this.total_host_count = total_host_count;
         this.host_id = host_id;
+        (new Thread(new RequestListenThread(host_id,this))).start();
     }
-    
     public void initialize_peers(){
-        for (int i = 0; i < this.total_host_count; i++) {
-            boolean connection_established = false;
+        for(int i=0;i < this.total_host_count;i++){
             if(i!=this.host_id){
-                while(connection_established!=true){
+                boolean connected = false;
+                while(connected!=true){
                     try{
                         Socket out_socket = new Socket("localhost",10000+i);
+                        System.out.println("REACHED HERE.");
                         DataOutputStream out_stream = new DataOutputStream(out_socket.getOutputStream());
-                        BufferedReader in_stream = new BufferedReader(new InputStreamReader(out_socket.getInputStream()));
-                        ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream, in_stream));
-                        this.peers.put(i,peer_streams);
-                        connection_established = true;
+                        InputStream sis = out_socket.getInputStream();
+                        BufferedReader in_stream = new BufferedReader(new InputStreamReader(sis));
+                        ObjectInputStream obj_input_stream = new ObjectInputStream(sis);
+                        System.out.println("REACHED HERE TOO.");
+                        ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream,in_stream,obj_input_stream));
+                        this.peers.put(i, peer_streams);
+                        connected = true;
                     } catch(Exception e){}
                 }
+                System.out.println("Conn established.");
             }
         }
-        System.out.println("Connection established will all nodes. Now proceeding...");
     }
-
-    public void broadcast_request(String req, KeyValueStore kv_store) throws IOException, InterruptedException {
-        
-        ExecutorService broadcast_executor = Executors.newFixedThreadPool(kv_store.total_host_count);
-        String req_type = parseRequest(req)[0].trim();
-
-        if (req_type.equals("PUT")) {
-            this.broadcastPutRequest(req, broadcast_executor, kv_store);
-        }
-
-        // TODO: Make separate thread and sending function for STORE
-        // TotalStore total_store = new TotalStore();
-        // this.peers.forEach((host_id,peer_streams)->{
-        //     DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
-        //     BufferedReader in = (BufferedReader)peer_streams.get(1);
-        //     if(parseRequest(req)[0].equals("STORE")){
-        //         broadcast_executor.execute(new SendRequestThread(dos, in, req,total_store));
-        //     }
-        // });
-        
-        broadcast_executor.shutdownNow();
-        // if(parseRequest(req)[0].trim().equals("STORE")){
-        //     System.out.println(total_store.total);
-        // }
- 
-    }
-
-    public void broadcastPutRequest(String req, ExecutorService broadcast_executor, KeyValueStore kv_store) throws InterruptedException {
+    public void execute_put(String key,String value){
         final AtomicInteger count = new AtomicInteger(0);
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
         this.peers.forEach((host_id,peer_streams)->{
             DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
             BufferedReader in = (BufferedReader)peer_streams.get(1);
-            broadcast_executor.execute(new SendPutRequestThread(dos, in, req, count));
+            broadcast_executor.execute(new SendPutRequestThread(dos, in, key, value, count,self_random));
         });
-
-        broadcast_executor.awaitTermination(2L, TimeUnit.SECONDS);
-
-        if(count.intValue()==kv_store.total_host_count-1){
-            System.out.println("REQ SUCCESSFUL");
-            // the request was successful the key can now be put into the local store and
-            // the peer table changes need to be broadcast
-            String[] query_terms = this.parseRequest(req);
-            String key = query_terms[1];
-            String value = query_terms[2];
+        broadcast_executor.shutdown();
+        try{
+            broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
+        } catch(Exception e){}
+        if(count.intValue()==this.total_host_count - 1){
+            // Request successful
             this.local_store.put(key, value);
-            this.broadcastPeerTableChange(key, kv_store);
+            execute_ptupdate(key, this.host_id);
+            keys_random_pairs.remove(key);
+            System.out.println("PUT REQUEST SUCCESSFUL");
         } else{
-            // the request was unsuccessful, this key is already in use.
-            // maybe the change has not been propagated or someone else generated
-            // the same key at the same time with a higher random integer.
-            System.out.println("REQUEST UNSUCCESSFUL");
+            //Request unsuccessful
+            System.out.println("PUT REQUEST FAILED.");
         }
     }
-
-    public void broadcastPeerTableChange(String key, KeyValueStore kv_store) {
-        // PTUPDATE|host_id|key
-        String req = "PTUPDATE|" + this.host_id + "|" + key + "\n";
-        ExecutorService broadcast_executor = Executors.newFixedThreadPool(kv_store.total_host_count);
-        this.peers.forEach((host_id,peer_streams)->{
+    public void execute_get(String key){
+        System.out.println("Executing GET "+key);
+        int key_holder = peer_table.get(key);
+        DataOutputStream dos = (DataOutputStream)(peers.get(key_holder)).get(0);
+        BufferedReader in = (BufferedReader)(peers.get(key_holder)).get(1);
+        String request = "GET "+key + "\n";
+        try{
+            dos.writeBytes(request);
+            while(!in.ready());
+            char buf = '\0';
+            String response = "";
+            while(!(buf == '\n')){
+                buf = (char) in.read();
+                response += buf;
+            }
+            System.out.println("GET query executed. Returned "+response);
+        } catch(Exception e){
+            System.out.println("Exception occured when writing query to output stream in SendPutRequestThread");
+        }
+    }
+    public void execute_store(){
+        ConcurrentHashMap<String,String> total_map = new ConcurrentHashMap<String,String>();
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        this.peers.forEach((h_id,peer_streams)->{
+            DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
+            ObjectInputStream ois = (ObjectInputStream)peer_streams.get(2);
+            broadcast_executor.execute(new SendStoreRequestThread(dos,ois,h_id,total_map));
+        });
+        System.out.println("**TABLE**");
+        total_map.forEach((key,value)->{
+            System.out.println(key + "\t \t" +value);
+        });
+    }
+    public void execute_ptupdate(String key,Integer host_id){
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        this.peers.forEach((h_id,peer_streams)->{
             DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
             BufferedReader in = (BufferedReader)peer_streams.get(1);
-            broadcast_executor.execute(new SendRequestThread(dos, in, req));
+            broadcast_executor.execute(new SendPTUpdateRequestThread(dos,in,key,h_id));
         });
+        broadcast_executor.shutdown();
         try{
-            broadcast_executor.awaitTermination(2L, TimeUnit.SECONDS);
+            broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
         } catch(Exception e){}
     }
-    
-
-    public String[] parseRequest(String req) {
-        String[] queryTerms = req.split("\\|");
-        return queryTerms;
+    public void execute_delete(String key){
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        this.local_store.remove(key);
+        this.peers.forEach((h_id,peer_streams)->{
+            DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
+            BufferedReader in = (BufferedReader)peer_streams.get(1);
+            broadcast_executor.execute(new SendDeleteRequestThread(dos,in,key));
+        });
+        broadcast_executor.shutdown();
+        try{
+            broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
+        } catch(Exception e){}
     }
-
-    public String generate_random_request(KeyValueStore kv_store) {
-        String[] operations = {"PUT", "GET", "DEL", "STORE"};
-        int op_index = ThreadLocalRandom.current().nextInt(0, operations.length);
-        String random_op = operations[op_index];
-        
-        if (random_op == "PUT" || random_op == "GET" || random_op == "DEL") {
-            String random_key = "";
-            do {
-                // Generate random key
-                int r = ThreadLocalRandom.current().nextInt(0, kv_store.key_count);
-                random_key = Integer.toString(r);
-            }
-            while(kv_store.local_store.containsKey(random_key) && kv_store.peer_table.containsKey(random_key));
-            if (random_op == "PUT") {
-                // Generate random value
-                String random_value = Integer.toString(ThreadLocalRandom.current().nextInt(0, Integer.MAX_VALUE));
-                String encoded_random_value = Base64.getEncoder().encodeToString(random_value.getBytes());
-                
-                // Generate random number for clash resolution
-                int rand_num = ThreadLocalRandom.current().nextInt(0, 1001);
-                kv_store.keys_random_pairs.put(random_key, rand_num);
-                String random_num = Integer.toString(rand_num);
-                
-                return random_op + "|" + random_key + "|" + encoded_random_value + "|" + random_num + "\n";
-            }
-            return random_op + "|" + random_key + "\n";
-        }
-        return random_op + "\n";
+    public void handle_put(String key,String value,Integer recvd_rand,Socket socket){
+        HandlePutThread hp_thread = new HandlePutThread(this,key, value,recvd_rand,socket);
+        (new Thread(hp_thread)).start();
+    }
+    public void handle_get(String key,Socket socket){
+        HandleGetThread hg_thread = new HandleGetThread(this,key,socket);
+        (new Thread(hg_thread)).start();
+    }
+    public void handle_store(Socket socket){
+        HandleStoreThread hs_thread = new HandleStoreThread(this,socket);
+        (new Thread(hs_thread)).start();
+    }
+    public void handle_delete(String key,Socket socket){
+        HandleDeleteThread hs_thread = new HandleDeleteThread(this,key,socket);
+        (new Thread(hs_thread)).start();
+    }
+    public void handle_ptupdate(String key,Integer host_id,Socket socket){
+        HandlePTUpdateThread hpt_thread = new HandlePTUpdateThread(this,key,host_id,socket);
+        (new Thread(hpt_thread)).start();
     }
 }

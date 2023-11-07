@@ -3,20 +3,38 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
-public class SendPutRequestThread extends BaseSendRequestThread {
-    AtomicInteger counter;
-
-    public SendPutRequestThread(DataOutputStream dos, BufferedReader in, String req, AtomicInteger counter){
-        super(dos, in, req);
-        this.counter = counter;
+public class SendPutRequestThread implements Runnable {
+    DataOutputStream dos;
+    BufferedReader in;
+    String key;
+    String value;
+    AtomicInteger count;
+    Integer self_random;
+    public SendPutRequestThread(DataOutputStream dos,BufferedReader in,String key,String value,AtomicInteger count,Integer self_random){
+        this.dos = dos;
+        this.in = in;
+        this.key = key;
+        this.value = value;
+        this.count = count;
+        this.self_random = self_random;
     }
-
-    public void run() {
-        this.sendRequest();
-        String res = this.recieveResponse();
-        if(res.equals("YES")){
-            counter.incrementAndGet();
+    public void run(){
+        String request = "PUT "+key+" "+value+" "+self_random+"\n";
+        try{
+            dos.writeBytes(request);
+            while(!in.ready());
+            char buf = '\0';
+            String response = "";
+            while(!(buf == '\n')){
+                buf = (char) in.read();
+                response += buf;
+            }
+            if(response.equals("YES")){
+                count.incrementAndGet();
+            }
+        } catch(Exception e){
+            System.out.println("Exception occured when writing query to output stream in SendPutRequestThread");
         }
     }
+    
 }
