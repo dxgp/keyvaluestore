@@ -18,7 +18,7 @@ public class RequestListenThread implements Runnable{
             this.host_id = host_id;
             this.kv_store = kv_store;
             accept_socket = new ServerSocket(10000+host_id);
-        } catch(Exception e){}
+        } catch(Exception e){e.printStackTrace();}
     }
     public void run(){
         System.out.println("Now listening for incoming connections");
@@ -30,7 +30,6 @@ public class RequestListenThread implements Runnable{
             
             while(true){
                 System.out.println("Listening....");
-                while(!sender_in.ready());
                 char buf = '\0';
                 String query = "";
                 while(!(buf == '\n')){
@@ -61,6 +60,6 @@ public class RequestListenThread implements Runnable{
                 }
                 System.out.println("**RECEIVED QUERY PROCESSING FINISHED**");
             }
-        } catch(Exception e){}
+        } catch(Exception e){e.printStackTrace();}
     }
 }

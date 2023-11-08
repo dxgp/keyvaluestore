@@ -20,6 +20,6 @@ public class HandleDeleteThread implements Runnable{
             kv_store.peer_table.remove(key);
             dos.writeBytes("EXECUTED\n");
             dos.flush();
-        } catch(Exception e){}
+        } catch(Exception e){e.printStackTrace();}
     }
 }

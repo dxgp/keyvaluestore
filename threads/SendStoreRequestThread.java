@@ -38,6 +38,6 @@ public class SendStoreRequestThread implements Runnable{
             }
             total_map.putAll(recvd_hm);
             dos.flush();
-        } catch(Exception e){}
+        } catch(Exception e){e.printStackTrace();}
     }
 }

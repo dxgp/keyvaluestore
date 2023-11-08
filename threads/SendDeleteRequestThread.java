@@ -28,6 +28,6 @@ public class SendDeleteRequestThread implements Runnable{
                 System.out.println("FAILED TO EXECUTE DELETE");
             }
             dos.flush();
-        } catch(Exception e){}
+        } catch(Exception e){e.printStackTrace();}
     }
 }

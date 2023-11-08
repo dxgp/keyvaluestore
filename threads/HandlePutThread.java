@@ -40,8 +40,6 @@ public class HandlePutThread implements Runnable {
                     System.out.println("REPLIED YES");
                 }
             }
-            dos.flush();
-            dos.close();
-        } catch(Exception e){}
+        } catch(Exception e){e.printStackTrace();}
     }
 }

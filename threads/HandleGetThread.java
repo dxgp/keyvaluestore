@@ -22,7 +22,6 @@ public class HandleGetThread implements Runnable {
             } else{
                 System.out.println("DOES NOT CONTAIN KEY");
             }
-            dos.flush();
-        } catch(Exception e){}
+        } catch(Exception e){e.printStackTrace();}
     }
 }

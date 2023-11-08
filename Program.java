@@ -10,6 +10,7 @@ public class Program{
         Scanner sc = new Scanner(System.in);
         while(true){
             try{
+                System.out.println("Enter query");
                 String query = sc.nextLine();
                 query = query.trim();
                 String[] query_terms = query.split("\\ ");
@@ -31,7 +32,7 @@ public class Program{
                 }
                 System.out.println("**QUERY EXECUTION COMPLETE**");
                 TimeUnit.MILLISECONDS.sleep(50);
-            } catch(Exception e){}
+            } catch(Exception e){e.printStackTrace();}
         }
     }
 }

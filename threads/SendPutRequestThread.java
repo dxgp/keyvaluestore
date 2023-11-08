@@ -21,10 +21,11 @@ public class SendPutRequestThread implements Runnable {
     public void run(){
         String request = "PUT "+key+" "+value+" "+self_random+"\n";
         try{
-            dos.writeBytes(request);
-            char buf = '\0';
             String response = "";
+            dos.writeBytes(request);
+            dos.flush();
             while(!in.ready());
+            char buf = '\0';
             while(!(buf == '\n')){
                 buf = (char) in.read();
                 response += buf;
@@ -33,9 +34,9 @@ public class SendPutRequestThread implements Runnable {
             if(response.equals("YES")){
                 count.incrementAndGet();
             }
-            dos.flush();
         } catch(Exception e){
             System.out.println("Exception occured when writing query to output stream in SendPutRequestThread");
+            e.printStackTrace();
         }
     }
     
