@@ -24,6 +24,7 @@ public class SendPutRequestThread implements Runnable {
             // dos.writeBytes(request);
             // dos.flush();
             sock.getOutputStream().write(request.getBytes());
+            sock.getOutputStream().flush();
             char buf = '\0';
             while(!(buf == '\n')){
                 buf = (char) sock.getInputStream().read();

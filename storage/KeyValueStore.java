@@ -1,12 +1,5 @@
 package storage;
-
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -64,9 +57,9 @@ public class KeyValueStore{
                         this.peers.put(i,out_socket);
                         //this.peers.put(i, peer_streams);
                         connected = true;
-                        out_socket.setPerformancePreferences(1, 0, 2); // here latency is 0.
-                        out_socket.setTcpNoDelay(true); // for client as well as server.
-                    } catch(Exception e){}
+                        // out_socket.setPerformancePreferences(1, 0, 2); // here latency is 0.
+                        // out_socket.setTcpNoDelay(true); // for client as well as server.
+                    } catch(Exception e){System.out.println("FAILED");}
                 }
                 System.out.println("Conn established.");
             }
@@ -133,6 +126,7 @@ public class KeyValueStore{
         });
     }
     public void execute_ptupdate(String key,Integer host_id){
+        System.out.println("NOW SENDING PTUPDATE");
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         this.peers.forEach((h_id,sock)->{            
             broadcast_executor.execute(new SendPTUpdateRequestThread(sock,key,host_id));
@@ -140,6 +134,7 @@ public class KeyValueStore{
         broadcast_executor.shutdown();
         try{
             broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
+            System.out.println("PTUPDATE EXECUTED");
         } catch(Exception e){e.printStackTrace();}
     }
     public void execute_delete(String key){
