@@ -11,7 +11,6 @@ public class HandlePutThread implements Runnable {
     String value;
     Integer recvd_rand;
     Socket reply_socket;
-    DataOutputStream dos;
     public HandlePutThread(KeyValueStore kv_store,String key,String value,Integer recvd_rand,Socket reply_socket){
         this.kv_store = kv_store;
         this.key = key;
@@ -21,25 +20,29 @@ public class HandlePutThread implements Runnable {
     }
     public void run(){
         try{
-            dos = new DataOutputStream(reply_socket.getOutputStream());
+            // dos = new DataOutputStream(reply_socket.getOutputStream());
             if(kv_store.local_store.containsKey(key) || kv_store.peer_table.containsKey(key)){
-                dos.writeBytes("NO\n");
+                reply_socket.getOutputStream().write(("NO\n").getBytes());
                 System.out.println("REPLIED NO");
             } else{
                 if(kv_store.keys_random_pairs.containsKey(key)){
                     int self_random = kv_store.keys_random_pairs.get(key);
                     if(recvd_rand>self_random){
-                        dos.writeBytes("YES\n");
+                        // dos.writeBytes("YES\n");
+                        reply_socket.getOutputStream().write(("YES\n").getBytes());
                         System.out.println("REPLIED YES");
                     } else{
-                        dos.writeBytes("NO\n");
+                        // dos.writeBytes("NO\n");
+                        reply_socket.getOutputStream().write(("NO\n").getBytes());
                         System.out.println("REPLIED NO");
                     }
                 } else{
-                    dos.writeBytes("YES\n");
+                    // dos.writeBytes("YES\n");
+                    reply_socket.getOutputStream().write(("YES\n").getBytes());
                     System.out.println("REPLIED YES");
                 }
             }
+            reply_socket.getOutputStream().flush();
         } catch(Exception e){e.printStackTrace();}
     }
 }

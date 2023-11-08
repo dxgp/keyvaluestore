@@ -26,7 +26,7 @@ public class RequestListenThread implements Runnable{
             System.out.println("BEFORE ACCEPT");
             socket = accept_socket.accept();
             System.out.println("AFTER ACCEPT");
-            BufferedReader sender_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            //BufferedReader sender_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
             while(true){
                 System.out.println("Listening....");

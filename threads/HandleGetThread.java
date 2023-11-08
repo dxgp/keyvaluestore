@@ -16,9 +16,11 @@ public class HandleGetThread implements Runnable {
     }
     public void run(){
         try{
-            DataOutputStream dos = new DataOutputStream(reply_socket.getOutputStream());
+            // DataOutputStream dos = new DataOutputStream(reply_socket.getOutputStream());
             if(kv_store.local_store.containsKey(key)){
-                dos.writeBytes(kv_store.local_store.get(key)+"\n");
+                // dos.writeBytes(kv_store.local_store.get(key)+"\n");
+                reply_socket.getOutputStream().write((kv_store.local_store.get(key)+"\n").getBytes());
+                reply_socket.getOutputStream().flush();
             } else{
                 System.out.println("DOES NOT CONTAIN KEY");
             }

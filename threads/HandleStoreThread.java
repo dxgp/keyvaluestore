@@ -1,6 +1,5 @@
 package threads;
 
-import java.io.DataOutputStream;
 import java.net.Socket;
 import java.util.Map;
 
@@ -15,13 +14,14 @@ public class HandleStoreThread implements Runnable {
     }
     public void run(){
         try{
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
             String final_data = "";
             for (Map.Entry<String,String> entry : kv_store.local_store.entrySet()) {
                 final_data = final_data + entry.getKey() + " " + entry.getValue() + "|";
             } 
             final_data = final_data + "\n";
-            dos.writeBytes(final_data);
+            // dos.writeBytes(final_data);
+            socket.getOutputStream().write(final_data.getBytes());
+            socket.getOutputStream().flush();
         } catch(Exception e){e.printStackTrace();}
     }
 }

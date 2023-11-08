@@ -16,10 +16,10 @@ public class HandleDeleteThread implements Runnable{
     }
     public void run(){
         try{
-            DataOutputStream dos = new DataOutputStream(reply_socket.getOutputStream());
             kv_store.peer_table.remove(key);
-            dos.writeBytes("EXECUTED\n");
-            dos.flush();
+            reply_socket.getOutputStream().write(("EXECUTED\n").getBytes());
+            reply_socket.getOutputStream().flush();
+            // dos.writeBytes("EXECUTED\n");
         } catch(Exception e){e.printStackTrace();}
     }
 }

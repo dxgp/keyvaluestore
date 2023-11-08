@@ -2,29 +2,29 @@ package threads;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SendStoreRequestThread implements Runnable{
-    DataOutputStream dos;
-    BufferedReader in;
+    Socket sock;
     Integer host_id;
     ConcurrentHashMap<String,String> total_map;
-    public SendStoreRequestThread(DataOutputStream dos,BufferedReader in,Integer host_id,ConcurrentHashMap<String,String> total_map){
-        this.dos = dos;
-        this.in = in;
+    public SendStoreRequestThread(Socket sock,Integer host_id,ConcurrentHashMap<String,String> total_map){
+        this.sock = sock;
         this.host_id = host_id;
         this.total_map = total_map;
     }
     public void run(){
         String request = "STORE" + "\n";
         try{
-            dos.writeBytes(request);
-            while(!in.ready());
+            //dos.writeBytes(request);
+            sock.getOutputStream().write(request.getBytes());
+            sock.getOutputStream().flush();
             char buf = '\0';
             String response = "";
             while(!(buf == '\n')){
-                buf = (char) in.read();
+                buf = (char) sock.getInputStream().read();
                 response += buf;
             }
             response = response.trim();
@@ -37,7 +37,6 @@ public class SendStoreRequestThread implements Runnable{
                 recvd_hm.put(kv[0], kv[1]);
             }
             total_map.putAll(recvd_hm);
-            dos.flush();
         } catch(Exception e){e.printStackTrace();}
     }
 }

@@ -18,14 +18,17 @@ public class HandlePTUpdateThread implements Runnable {
     }
     public void run(){
         try{
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+            // DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
             if(kv_store.peer_table.containsKey(key)){
                 System.out.println("Key already exists in peer table");
-                dos.writeBytes("ERR\n");
+                socket.getOutputStream().write(("ERR\n").getBytes());
+                // dos.writeBytes("ERR\n");
             } else{
                 kv_store.peer_table.put(key, host_id);
-                dos.writeBytes("EXECUTED\n");
+                // dos.writeBytes("EXECUTED\n");
+                socket.getOutputStream().write(("EXECUTED\n").getBytes());
             }
+            socket.getOutputStream().flush();
         } catch(Exception e){e.printStackTrace();}
     }
 }

@@ -2,17 +2,16 @@ package threads;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.net.Socket;
 
 public class SendPutRequestThread implements Runnable {
-    DataOutputStream dos;
-    BufferedReader in;
+    Socket sock;
     String key;
     String value;
     AtomicInteger count;
     Integer self_random;
-    public SendPutRequestThread(DataOutputStream dos,BufferedReader in,String key,String value,AtomicInteger count,Integer self_random){
-        this.dos = dos;
-        this.in = in;
+    public SendPutRequestThread(Socket sock,String key,String value,AtomicInteger count,Integer self_random){
+        this.sock = sock;
         this.key = key;
         this.value = value;
         this.count = count;
@@ -22,12 +21,12 @@ public class SendPutRequestThread implements Runnable {
         String request = "PUT "+key+" "+value+" "+self_random+"\n";
         try{
             String response = "";
-            dos.writeBytes(request);
-            dos.flush();
-            while(!in.ready());
+            // dos.writeBytes(request);
+            // dos.flush();
+            sock.getOutputStream().write(request.getBytes());
             char buf = '\0';
             while(!(buf == '\n')){
-                buf = (char) in.read();
+                buf = (char) sock.getInputStream().read();
                 response += buf;
             }
             response = response.trim();

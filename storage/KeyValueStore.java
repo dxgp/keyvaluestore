@@ -32,7 +32,7 @@ public class KeyValueStore{
     public ConcurrentHashMap<String,String> local_store;
     public ConcurrentHashMap<String,Integer> peer_table;
     public ConcurrentHashMap<String,Integer> keys_random_pairs;
-    public ConcurrentHashMap<Integer,ArrayList<Object>> peers;
+    public ConcurrentHashMap<Integer,Socket> peers;
     ExecutorService query_executor;
 
     public int host_id;
@@ -42,7 +42,8 @@ public class KeyValueStore{
         this.local_store = new ConcurrentHashMap<String,String>(){};
         this.peer_table = new ConcurrentHashMap<String,Integer>();
         this.keys_random_pairs = new ConcurrentHashMap<String,Integer>();
-        this.peers = new ConcurrentHashMap<Integer,ArrayList<Object>>();
+        //this.peers = new ConcurrentHashMap<Integer,ArrayList<Object>>();
+        this.peers = new ConcurrentHashMap<Integer,Socket>();
         this.total_host_count = total_host_count;
         this.host_id = host_id;
         this.query_executor = Executors.newFixedThreadPool(10);
@@ -55,12 +56,13 @@ public class KeyValueStore{
                 while(connected!=true){
                     try{
                         Socket out_socket = new Socket("localhost",10000+i);
-                        System.out.println("REACHED HERE.");
-                        DataOutputStream out_stream = new DataOutputStream(out_socket.getOutputStream());
-                        BufferedReader in_stream = new BufferedReader(new InputStreamReader(out_socket.getInputStream()));
-                        System.out.println("REACHED HERE TOO.");
-                        ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream,in_stream));
-                        this.peers.put(i, peer_streams);
+                        //System.out.println("REACHED HERE.");
+                        //DataOutputStream out_stream = new DataOutputStream(out_socket.getOutputStream());
+                        //BufferedReader in_stream = new BufferedReader(new InputStreamReader(out_socket.getInputStream()));
+                        //System.out.println("REACHED HERE TOO.");
+                        //ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream,in_stream));
+                        this.peers.put(i,out_socket);
+                        //this.peers.put(i, peer_streams);
                         connected = true;
                         out_socket.setPerformancePreferences(1, 0, 2); // here latency is 0.
                         out_socket.setTcpNoDelay(true); // for client as well as server.
@@ -74,11 +76,9 @@ public class KeyValueStore{
         final AtomicInteger count = new AtomicInteger(0);
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
-        this.peers.forEach((host_id,peer_streams)->{
+        this.peers.forEach((host_id,sock)->{
             System.out.println("Sent to host id:"+host_id);
-            DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
-            BufferedReader in = (BufferedReader)peer_streams.get(1);
-            broadcast_executor.execute(new SendPutRequestThread(dos, in, key, value, count,self_random));
+            broadcast_executor.execute(new SendPutRequestThread(sock, key, value, count,self_random));
         });
         broadcast_executor.shutdown();
         try{
@@ -100,17 +100,16 @@ public class KeyValueStore{
         System.out.println("Executing GET "+key);
         int key_holder = peer_table.get(key);
         System.out.println("KEY HOLDER IS:"+key_holder);
-        DataOutputStream dos = (DataOutputStream)(peers.get(key_holder)).get(0);
-        BufferedReader in = (BufferedReader)(peers.get(key_holder)).get(1);
+        Socket sock = this.peers.get(key_holder);
         String request = "GET "+key + "\n";
         try{
-            dos.writeBytes(request);
+            //dos.writeBytes(request);
+            sock.getOutputStream().write(request.getBytes());
             System.out.println("BYTES WRITTEN");
-            while(!in.ready());
             char buf = '\0';
             String response = "";
             while(!(buf == '\n')){
-                buf = (char) in.read();
+                buf = (char) sock.getInputStream().read();
                 response += buf;
             }
             System.out.println("GET query executed. Returned "+response);
@@ -121,10 +120,8 @@ public class KeyValueStore{
     public void execute_store(){
         ConcurrentHashMap<String,String> total_map = new ConcurrentHashMap<String,String>();
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
-        this.peers.forEach((h_id,peer_streams)->{
-            DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
-            BufferedReader in = (BufferedReader)peer_streams.get(1);
-            broadcast_executor.execute(new SendStoreRequestThread(dos,in,h_id,total_map));
+        this.peers.forEach((h_id,sock)->{
+            broadcast_executor.execute(new SendStoreRequestThread(sock,h_id,total_map));
         });
         broadcast_executor.shutdown();
         try{
@@ -137,10 +134,8 @@ public class KeyValueStore{
     }
     public void execute_ptupdate(String key,Integer host_id){
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
-        this.peers.forEach((h_id,peer_streams)->{
-            DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
-            BufferedReader in = (BufferedReader)peer_streams.get(1);
-            broadcast_executor.execute(new SendPTUpdateRequestThread(dos,in,key,host_id));
+        this.peers.forEach((h_id,sock)->{            
+            broadcast_executor.execute(new SendPTUpdateRequestThread(sock,key,host_id));
         });
         broadcast_executor.shutdown();
         try{
@@ -150,10 +145,8 @@ public class KeyValueStore{
     public void execute_delete(String key){
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         this.local_store.remove(key);
-        this.peers.forEach((h_id,peer_streams)->{
-            DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
-            BufferedReader in = (BufferedReader)peer_streams.get(1);
-            broadcast_executor.execute(new SendDeleteRequestThread(dos,in,key));
+        this.peers.forEach((h_id,sock)->{
+            broadcast_executor.execute(new SendDeleteRequestThread(sock,key));
         });
         broadcast_executor.shutdown();
         try{

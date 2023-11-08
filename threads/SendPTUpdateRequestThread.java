@@ -2,34 +2,33 @@ package threads;
 
 import java.io.DataOutputStream;
 import java.io.BufferedReader;
+import java.net.Socket;
 
 public class SendPTUpdateRequestThread implements Runnable {
-    DataOutputStream dos;
-    BufferedReader in;
+    Socket sock;
     String key;
     Integer host_id;
-    public SendPTUpdateRequestThread(DataOutputStream dos,BufferedReader in,String key,Integer host_id){
-        this.dos = dos;
-        this.in = in;
+    public SendPTUpdateRequestThread(Socket sock,String key,Integer host_id){
+        this.sock = sock;
         this.key = key;
         this.host_id = host_id;
     }
     public void run(){
         String request = "PTUPDATE "+key+" "+host_id+"\n";
         try{
-            dos.writeBytes(request);
-            while(!in.ready());
+            // dos.writeBytes(request);
+            sock.getOutputStream().write(request.getBytes());
+            sock.getOutputStream().flush();
             char buf = '\0';
             String response = "";
             while(!(buf == '\n')){
-                buf = (char) in.read();
+                buf = (char) sock.getInputStream().read();
                 response += buf;
             }
             response = response.trim();
             if(!response.equals("EXECUTED")){
                 System.out.println("FAILED TO EXECUTE PTUPDATE for host "+host_id);
             }
-            dos.flush();
         } catch(Exception e){e.printStackTrace();}
     }
 }
