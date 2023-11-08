@@ -53,9 +53,9 @@ public class RequestListenThread implements Runnable{
                 
                 // TODO: Handle other query types
                 
-                // } else if(query_terms[0].equals("GET")){
-                //     String key = query_terms[1];
-                //     kv_store.handle_get(key, socket);
+                } else if(query_terms[0].equals("GET")){
+                    String key = query_terms[1];
+                    kv_store.handle_get(key, socket, reply_address, reply_port);
                 // } else if(query_terms[0].equals("STORE")){
                 //     kv_store.handle_store(socket);
                 // } else if(query_terms[0].equals("DELETE")){

@@ -5,6 +5,7 @@ import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -117,29 +118,50 @@ public class KeyValueStore{
         });
     }
 
-    // public void execute_get(String key){
+    public void execute_get(String key){
 
-    //     System.out.println("Executing GET "+key);
-    //     int key_holder = peer_table.get(key);
-    //     System.out.println("KEY HOLDER IS:"+key_holder);
-    //     DataOutputStream dos = (DataOutputStream)(peers.get(key_holder)).get(0);
-    //     BufferedReader in = (BufferedReader)(peers.get(key_holder)).get(1);
-    //     String request = "GET "+key + "\n";
-    //     try{
-    //         dos.writeBytes(request);
-    //         System.out.println("BYTES WRITTEN");
-    //         while(!in.ready());
-    //         char buf = '\0';
-    //         String response = "";
-    //         while(!(buf == '\n')){
-    //             buf = (char) in.read();
-    //             response += buf;
-    //         }
-    //         System.out.println("GET query executed. Returned "+response);
-    //     } catch(Exception e){
-    //         System.out.println("Exception occured when writing query to output stream in SendPutRequestThread");
-    //     }
-    // }
+        if (this.local_store.containsKey(key)) {
+            System.out.println("Key " + key + " found locally.");
+            String value = this.local_store.get(key);
+            System.out.println("GET query executed. Value is: " + value);
+        } else {
+            System.out.println("Looking for key " + key + " in peer table.");
+
+            if (!peer_table.containsKey(key)) {
+                System.out.println("Key not found in peer table. Key does not exist in the system.");
+            } else {
+                int key_holder_host_id = peer_table.get(key);
+                System.out.println("Key found in peer table. Querying host " + key_holder_host_id + " for the key");
+                String request = "GET "+ key;
+                try{
+                    // Retreive holder's ip and port for sending request
+                    String holder_address = this.peers.get(key_holder_host_id);
+                    int holder_port = 10000 + key_holder_host_id;
+
+                    // Send GET request
+                    DatagramSocket send_get_socket = new DatagramSocket();
+                    byte[] buf = request.getBytes();
+                    InetAddress holder_inet = InetAddress.getByName(holder_address);
+                    DatagramPacket packet = new DatagramPacket(buf, buf.length, holder_inet, holder_port);
+                    send_get_socket.send(packet);
+
+                    // Receive value from holder
+                    byte[] ack_buf = new byte[500];
+                    DatagramPacket ack_packet = new DatagramPacket(ack_buf, ack_buf.length);
+                    send_get_socket.receive(ack_packet);
+                    String value = new String(ack_packet.getData());
+                    System.out.println("GET query executed. Value is: " + value);
+
+                    send_get_socket.close();
+                } catch(Exception e){
+                    System.out.println("Exception occured when writing query to output stream in SendPutRequestThread");
+                }
+            }
+            
+        }
+
+        
+    }
     // public void execute_store(){
     //     ConcurrentHashMap<String,String> total_map = new ConcurrentHashMap<String,String>();
     //     //ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
@@ -191,10 +213,10 @@ public class KeyValueStore{
         (new Thread(hpt_thread)).start();
     }
 
-    // public void handle_get(String key,Socket socket){
-    //     HandleGetThread hg_thread = new HandleGetThread(this,key,socket);
-    //     (new Thread(hg_thread)).start();
-    // }
+    public void handle_get(String key,DatagramSocket socket, InetAddress reply_address, Integer reply_port){
+        HandleGetThread hg_thread = new HandleGetThread(this, key, socket, reply_address, reply_port);
+        (new Thread(hg_thread)).start();
+    }
     // public void handle_store(Socket socket){
     //     HandleStoreThread hs_thread = new HandleStoreThread(this,socket);
     //     (new Thread(hs_thread)).start();

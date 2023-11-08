@@ -17,9 +17,9 @@ public class Program{
                     String key = query_terms[1];
                     String value = query_terms[2];
                     kv_store.execute_put(key, value);
-                // } else if(query_terms[0].equals("GET")){
-                //     String key = query_terms[1];
-                //     kv_store.execute_get(key);
+                } else if(query_terms[0].equals("GET")){
+                    String key = query_terms[1];
+                    kv_store.execute_get(key);
                 // } else if(query_terms[0].equals("STORE")){
                 //     kv_store.execute_store();
                 // } else if(query_terms[0].equals("DELETE")){
