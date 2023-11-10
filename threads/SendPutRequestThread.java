@@ -1,6 +1,4 @@
 package threads;
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.Socket;
 

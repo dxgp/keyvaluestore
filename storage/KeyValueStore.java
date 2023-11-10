@@ -59,7 +59,7 @@ public class KeyValueStore{
                         connected = true;
                         // out_socket.setPerformancePreferences(1, 0, 2); // here latency is 0.
                         // out_socket.setTcpNoDelay(true); // for client as well as server.
-                    } catch(Exception e){System.out.println("FAILED");}
+                    } catch(Exception e){}
                 }
                 System.out.println("Conn established.");
             }

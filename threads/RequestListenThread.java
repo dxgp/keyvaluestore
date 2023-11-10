@@ -2,12 +2,8 @@ package threads;
 
 import storage.KeyValueStore;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
 
 public class RequestListenThread implements Runnable{
     int host_id;

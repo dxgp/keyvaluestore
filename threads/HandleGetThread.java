@@ -1,6 +1,5 @@
 package threads;
 
-import java.io.DataOutputStream;
 import java.net.Socket;
 
 import storage.KeyValueStore;

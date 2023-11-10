@@ -2,7 +2,6 @@ package threads;
 
 import storage.KeyValueStore;
 
-import java.io.DataOutputStream;
 import java.net.Socket;
 
 public class HandlePutThread implements Runnable {

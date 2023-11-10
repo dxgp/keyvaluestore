@@ -1,7 +1,4 @@
 package threads;
-
-import java.io.DataOutputStream;
-import java.io.BufferedReader;
 import java.net.Socket;
 
 public class SendPTUpdateRequestThread implements Runnable {
