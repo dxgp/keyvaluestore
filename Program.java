@@ -20,8 +20,8 @@ public class Program{
                 } else if(query_terms[0].equals("GET")){
                     String key = query_terms[1];
                     kv_store.execute_get(key);
-                // } else if(query_terms[0].equals("STORE")){
-                //     kv_store.execute_store();
+                } else if(query_terms[0].equals("STORE")){
+                    kv_store.execute_store();
                 // } else if(query_terms[0].equals("DELETE")){
                 //     String key = query_terms[1];
                 //     kv_store.execute_delete(key);
