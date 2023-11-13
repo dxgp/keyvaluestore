@@ -193,19 +193,30 @@ public class KeyValueStore{
         });
     }
     
-    // public void execute_delete(String key){
-    //     ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
-    //     this.local_store.remove(key);
-    //     this.peers.forEach((h_id,peer_streams)->{
-    //         DataOutputStream dos = (DataOutputStream)peer_streams.get(0);
-    //         BufferedReader in = (BufferedReader)peer_streams.get(1);
-    //         broadcast_executor.execute(new SendDeleteRequestThread(dos,in,key));
-    //     });
-    //     broadcast_executor.shutdown();
-    //     try{
-    //         broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
-    //     } catch(Exception e){}
-    // }
+    public void execute_delete(String key){
+
+        if (!this.local_store.containsKey(key)) {
+            System.out.println("Invalid Request: The key " + key + " does not exist at this node.");
+            return;
+        }
+
+        // Remove the entry for the key from local store
+        this.local_store.remove(key);
+
+        // Broadcast delete request to all the peers to delete the entry from their peer table
+        this.peers.forEach((peer_host_id,address)->{
+            Thread th;
+            try {
+                th = new Thread(new SendDeleteRequestThread(peer_host_id, address, key));
+                th.start();
+                th.join();
+            } catch (UnknownHostException | SocketException | InterruptedException e) {
+                e.printStackTrace();
+            } 
+            
+        });
+        
+    }
 
     // Receiving methods
     public void handle_put(String key, String value, Integer recvd_rand, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
@@ -227,9 +238,9 @@ public class KeyValueStore{
         HandleStoreThread hs_thread = new HandleStoreThread(this, socket, reply_address, reply_port);
         (new Thread(hs_thread)).start();
     }
-    // public void handle_delete(String key,Socket socket){
-    //     HandleDeleteThread hs_thread = new HandleDeleteThread(this,key,socket);
-    //     (new Thread(hs_thread)).start();
-    // }
+    public void handle_delete(String key, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
+        HandleDeleteThread hs_thread = new HandleDeleteThread(this, key, socket, reply_address, reply_port);
+        (new Thread(hs_thread)).start();
+    }
     
 }
