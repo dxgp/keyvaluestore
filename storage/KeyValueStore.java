@@ -68,6 +68,8 @@ public class KeyValueStore{
     }
 
     public void execute_put(String key,String value){
+        // TODO: Add timing code to measure time required to complete the PUT request
+
         final AtomicInteger count = new AtomicInteger(0);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
 
@@ -123,6 +125,7 @@ public class KeyValueStore{
     }
 
     public void execute_get(String key){
+        // TODO: Add timing code to measure time required to complete the GET request
 
         if (this.local_store.containsKey(key)) {
             System.out.println("Key " + key + " found locally.");
@@ -168,6 +171,8 @@ public class KeyValueStore{
     }
 
     public void execute_store(){
+        // TODO: Add timing code to measure time required to complete the STORE request
+
         // HashMap to store combined local stores of all the nodes
         ConcurrentHashMap<String,String> total_map = new ConcurrentHashMap<String,String>();
 
@@ -198,6 +203,7 @@ public class KeyValueStore{
     }
     
     public void execute_delete(String key){
+        // TODO: Add timing code to measure time required to complete the DELETE request
 
         if (!this.local_store.containsKey(key)) {
             System.out.println("Invalid Request: The key " + key + " does not exist at this node.");
