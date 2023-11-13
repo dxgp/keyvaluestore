@@ -25,7 +25,9 @@ public class Program{
                 } else if(query_terms[0].equals("DELETE")){
                     String key = query_terms[1];
                     kv_store.execute_delete(key);
-                } else{
+                } else if(query_terms[0].equals("EXIT")){
+                    kv_store.execute_exit();
+                }else{
                     System.out.println("INVALID QUERY PROVIDED");
                 }
             } catch(Exception e){}

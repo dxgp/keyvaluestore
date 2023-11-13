@@ -26,11 +26,15 @@ import threads.SendPutRequestThread;
 import threads.SendPTUpdateRequestThread;
 import threads.SendDeleteRequestThread;
 import threads.SendStoreRequestThread;
+import threads.SendExitRequestThread;
+
 import threads.HandlePutThread;
 import threads.HandleGetThread;
 import threads.HandlePTUpdateThread;
 import threads.HandleStoreThread;
 import threads.HandleDeleteThread;
+import threads.HandleExitThread;
+
 import threads.RequestListenThread;
 
 
@@ -218,6 +222,25 @@ public class KeyValueStore{
         
     }
 
+    public void execute_exit(){
+        // Broadcast exit request to all the peers to delete the entries for this host from their peer table
+        this.peers.forEach((peer_host_id,address)->{
+            Thread th;
+            try {
+                th = new Thread(new SendExitRequestThread(peer_host_id, address, this.host_id));
+                th.start();
+                th.join();
+            } catch (UnknownHostException | SocketException | InterruptedException e) {
+                e.printStackTrace();
+            } 
+            
+        });
+
+        // Exit program
+        System.exit(0);
+        
+    }
+
     // Receiving methods
     public void handle_put(String key, String value, Integer recvd_rand, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandlePutThread hp_thread = new HandlePutThread(this, key, value, recvd_rand, socket, reply_address, reply_port);
@@ -238,9 +261,15 @@ public class KeyValueStore{
         HandleStoreThread hs_thread = new HandleStoreThread(this, socket, reply_address, reply_port);
         (new Thread(hs_thread)).start();
     }
+
     public void handle_delete(String key, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandleDeleteThread hs_thread = new HandleDeleteThread(this, key, socket, reply_address, reply_port);
         (new Thread(hs_thread)).start();
+    }
+
+    public void handle_exit(String host_id, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
+        HandleExitThread he_thread = new HandleExitThread(this, host_id, socket, reply_address, reply_port);
+        (new Thread(he_thread)).start();
     }
     
 }

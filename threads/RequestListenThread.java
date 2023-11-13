@@ -50,22 +50,28 @@ public class RequestListenThread implements Runnable{
                     String value = query_terms[2];
                     int recvd_rand = Integer.parseInt(query_terms[3]);
                     kv_store.handle_put(key, value, recvd_rand, socket, reply_address, reply_port);
-                
-                // TODO: Handle other query types
-                
+
                 } else if(query_terms[0].equals("GET")){
                     String key = query_terms[1];
                     kv_store.handle_get(key, socket, reply_address, reply_port);
+
                 } else if(query_terms[0].equals("STORE")){
                     kv_store.handle_store(socket, reply_address, reply_port);
+
                 } else if(query_terms[0].equals("DELETE")){
                     String key = query_terms[1];
                     kv_store.handle_delete(key, socket, reply_address, reply_port);
+
                 } else if(query_terms[0].equals("PTUPDATE")){
                     String key = query_terms[1];
                     int host_id = Integer.parseInt(query_terms[2]);
                     kv_store.handle_ptupdate(key, host_id, socket, reply_address, reply_port);
-                } else{
+
+                } else if(query_terms[0].equals("EXIT")){
+                    String host_id = query_terms[1];
+                    kv_store.handle_exit(host_id, socket, reply_address, reply_port);
+                    
+                }else{
                     System.out.println("INVALID QUERY RECEIVED");
                 }
             }
