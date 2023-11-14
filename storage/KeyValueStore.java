@@ -48,7 +48,7 @@ public class KeyValueStore{
     public int total_host_count;
     
 
-    public KeyValueStore(int host_id,int total_host_count,int key_count) throws SocketException{
+    public KeyValueStore(int host_id,int total_host_count) throws SocketException{
         this.local_store = new ConcurrentHashMap<String,String>(){};
         this.peer_table = new ConcurrentHashMap<String,Integer>();
         this.keys_random_pairs = new ConcurrentHashMap<String,Integer>();
@@ -58,13 +58,14 @@ public class KeyValueStore{
 
         (new Thread(new RequestListenThread(host_id,this))).start();
     }
-    public void initialize_peers(){
-        for(int i=0;i < this.total_host_count;i++){
-            if(i!=this.host_id){
-                this.peers.put(i, "localhost");
-            }
+    public void initialize_peers(String[] args){
+        for(int i = 2; i < 1 + this.total_host_count; i++){
+            // host_id:ip is being split here
+            String[] host_id_ips = args[i].split(":");
+            this.peers.put(Integer.parseInt(host_id_ips[0]), host_id_ips[1]);
         }
-        System.out.println("Peer adresses initialised");
+        System.out.println("Peer adresses initialised:");
+        System.out.println(this.peers);
     }
 
     public void execute_put(String key,String value){

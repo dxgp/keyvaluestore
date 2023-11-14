@@ -4,8 +4,8 @@ import java.util.Scanner;
 import storage.KeyValueStore;
 public class Program{
     public static void main(String[] args) throws NumberFormatException, SocketException {
-        KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
-        kv_store.initialize_peers();
+        KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]));
+        kv_store.initialize_peers(args);
         Scanner sc = new Scanner(System.in);
         while(true){
             try{
