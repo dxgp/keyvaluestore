@@ -11,7 +11,6 @@ public class SendDeleteRequestThread implements Runnable{
     public void run(){
         String request = "DELETE "+key+"\n";
         try{
-            // dos.writeBytes(request);
             sock.getOutputStream().write(request.getBytes());
             sock.getOutputStream().flush();
             char buf = '\0';

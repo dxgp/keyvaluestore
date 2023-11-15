@@ -19,7 +19,6 @@ public class HandleStoreThread implements Runnable {
                 final_data = final_data + entry.getKey() + " " + entry.getValue() + "|";
             } 
             final_data = final_data + "\n";
-            // dos.writeBytes(final_data);
             socket.getOutputStream().write(final_data.getBytes());
             socket.getOutputStream().flush();
         } catch(Exception e){e.printStackTrace();}

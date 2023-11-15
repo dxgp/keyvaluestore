@@ -13,7 +13,6 @@ public class SendPTUpdateRequestThread implements Runnable {
     public void run(){
         String request = "PTUPDATE "+key+" "+host_id+"\n";
         try{
-            // dos.writeBytes(request);
             sock.getOutputStream().write(request.getBytes());
             sock.getOutputStream().flush();
             System.out.println("WROTE PTUPDATE TO OUT STREAM");

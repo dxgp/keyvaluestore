@@ -31,34 +31,25 @@ public class KeyValueStore{
     public int host_id;
     public int total_host_count;
 
-    public KeyValueStore(int host_id,int total_host_count,int key_count){
+    public KeyValueStore(int host_id,int total_host_count){
         this.local_store = new ConcurrentHashMap<String,String>(){};
         this.peer_table = new ConcurrentHashMap<String,Integer>();
         this.keys_random_pairs = new ConcurrentHashMap<String,Integer>();
-        //this.peers = new ConcurrentHashMap<Integer,ArrayList<Object>>();
         this.peers = new ConcurrentHashMap<Integer,Socket>();
         this.total_host_count = total_host_count;
         this.host_id = host_id;
         this.query_executor = Executors.newFixedThreadPool(10);
         (new Thread(new RequestListenThread(host_id,this))).start();
     }
-    public void initialize_peers(){
+    public void initialize_peers(String[] ip_list){
         for(int i=0;i < this.total_host_count;i++){
             if(i!=this.host_id){
                 boolean connected = false;
                 while(connected!=true){
                     try{
-                        Socket out_socket = new Socket("localhost",10000+i);
-                        //System.out.println("REACHED HERE.");
-                        //DataOutputStream out_stream = new DataOutputStream(out_socket.getOutputStream());
-                        //BufferedReader in_stream = new BufferedReader(new InputStreamReader(out_socket.getInputStream()));
-                        //System.out.println("REACHED HERE TOO.");
-                        //ArrayList<Object> peer_streams = new ArrayList<Object>(Arrays.asList(out_stream,in_stream));
+                        Socket out_socket = new Socket(ip_list[i],10000+i);
                         this.peers.put(i,out_socket);
-                        //this.peers.put(i, peer_streams);
                         connected = true;
-                        // out_socket.setPerformancePreferences(1, 0, 2); // here latency is 0.
-                        // out_socket.setTcpNoDelay(true); // for client as well as server.
                     } catch(Exception e){}
                 }
                 System.out.println("Conn established.");
@@ -96,7 +87,6 @@ public class KeyValueStore{
         Socket sock = this.peers.get(key_holder);
         String request = "GET "+key + "\n";
         try{
-            //dos.writeBytes(request);
             sock.getOutputStream().write(request.getBytes());
             System.out.println("BYTES WRITTEN");
             char buf = '\0';
@@ -149,28 +139,18 @@ public class KeyValueStore{
         } catch(Exception e){e.printStackTrace();}
     }
     public void handle_put(String key,String value,Integer recvd_rand,Socket socket){
-        //HandlePutThread hp_thread = new HandlePutThread(this,key, value,recvd_rand,socket);
         query_executor.execute(new HandlePutThread(this,key, value,recvd_rand,socket));
-        //(new Thread(hp_thread)).start();
     }
     public void handle_get(String key,Socket socket){
-        // HandleGetThread hg_thread = new HandleGetThread(this,key,socket);
         query_executor.execute(new HandleGetThread(this,key,socket));
-        // (new Thread(hg_thread)).start();
     }
     public void handle_store(Socket socket){
-        // HandleStoreThread hs_thread = new HandleStoreThread(this,socket);
         query_executor.execute(new HandleStoreThread(this,socket));
-        // (new Thread(hs_thread)).start();
     }
     public void handle_delete(String key,Socket socket){
-        // HandleDeleteThread hs_thread = new HandleDeleteThread(this,key,socket);
         query_executor.execute(new HandleDeleteThread(this,key,socket));
-        // (new Thread(hs_thread)).start();
     }
     public void handle_ptupdate(String key,Integer host_id,Socket socket){
-        // HandlePTUpdateThread hpt_thread = new HandlePTUpdateThread(this,key,host_id,socket);
         query_executor.execute(new HandlePTUpdateThread(this,key,host_id,socket));
-        // (new Thread(hpt_thread)).start();
     }
 }

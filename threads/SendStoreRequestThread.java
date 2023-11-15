@@ -1,6 +1,5 @@
 package threads;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SendStoreRequestThread implements Runnable{
@@ -15,7 +14,6 @@ public class SendStoreRequestThread implements Runnable{
     public void run(){
         String request = "STORE" + "\n";
         try{
-            //dos.writeBytes(request);
             sock.getOutputStream().write(request.getBytes());
             sock.getOutputStream().flush();
             char buf = '\0';
@@ -28,12 +26,11 @@ public class SendStoreRequestThread implements Runnable{
             System.out.println("STORE RESP:"+response);
             ConcurrentHashMap<String,String> recvd_hm = new ConcurrentHashMap<String,String>();
             String[] rows = response.split("\\|");
-            System.out.println("ROWS:"+Arrays.toString(rows));
             for(int i=0;i<rows.length;i++){
                 String[] kv = rows[i].split("\\ ");
                 recvd_hm.put(kv[0], kv[1]);
             }
             total_map.putAll(recvd_hm);
-        } catch(Exception e){e.printStackTrace();}
+        } catch(Exception e){}
     }
 }

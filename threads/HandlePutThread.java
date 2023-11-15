@@ -19,7 +19,6 @@ public class HandlePutThread implements Runnable {
     }
     public void run(){
         try{
-            // dos = new DataOutputStream(reply_socket.getOutputStream());
             if(kv_store.local_store.containsKey(key) || kv_store.peer_table.containsKey(key)){
                 reply_socket.getOutputStream().write(("NO\n").getBytes());
                 System.out.println("REPLIED NO");
@@ -27,16 +26,13 @@ public class HandlePutThread implements Runnable {
                 if(kv_store.keys_random_pairs.containsKey(key)){
                     int self_random = kv_store.keys_random_pairs.get(key);
                     if(recvd_rand>self_random){
-                        // dos.writeBytes("YES\n");
                         reply_socket.getOutputStream().write(("YES\n").getBytes());
                         System.out.println("REPLIED YES");
                     } else{
-                        // dos.writeBytes("NO\n");
                         reply_socket.getOutputStream().write(("NO\n").getBytes());
                         System.out.println("REPLIED NO");
                     }
                 } else{
-                    // dos.writeBytes("YES\n");
                     reply_socket.getOutputStream().write(("YES\n").getBytes());
                     System.out.println("REPLIED YES");
                 }

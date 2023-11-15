@@ -5,8 +5,12 @@ import java.util.concurrent.TimeUnit;
 import storage.KeyValueStore;
 public class Program{
     public static void main(String[] args) {
-        KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]));
-        kv_store.initialize_peers();
+        KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]));
+        String[] ip_list = new String[20];
+        for(int i=2;i<args.length;i++){
+            ip_list[i-2] = args[i];
+        }
+        kv_store.initialize_peers(ip_list);
         Scanner sc = new Scanner(System.in);
         while(true){
             try{
