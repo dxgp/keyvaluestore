@@ -7,6 +7,8 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
+
 public class SendPutRequestThread implements Runnable {
 
     String key;
@@ -17,11 +19,13 @@ public class SendPutRequestThread implements Runnable {
     InetAddress address;
     int port;
 
+
     public SendPutRequestThread(Integer host_id,String address,String key,String value,AtomicInteger count,Integer self_random) throws SocketException, UnknownHostException{
         this.key = key;
         this.value = value;
         this.count = count;
         this.self_random = self_random;
+
 
         socket = new DatagramSocket();
         this.address = InetAddress.getByName(address);

@@ -75,6 +75,8 @@ public class KeyValueStore{
         final AtomicInteger count = new AtomicInteger(0);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
 
+        this.keys_random_pairs.put(key, self_random);
+
         this.peers.forEach((host_id,address)->{
             System.out.println("Sent to host id: " + host_id);
             try {
@@ -100,7 +102,7 @@ public class KeyValueStore{
             // TODO: CALL execute_ptupdate
             execute_ptupdate(key, this.host_id);
 
-            keys_random_pairs.remove(key);
+            this.keys_random_pairs.remove(key);
             System.out.println("PUT REQUEST SUCCESSFUL");
         } else{
             //Request unsuccessful
