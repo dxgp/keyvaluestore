@@ -70,6 +70,7 @@ public class KeyValueStore{
 
     public void execute_put(String key,String value){
         // TODO: Add timing code to measure time required to complete the PUT request
+        long startTime = System.currentTimeMillis();
 
         final AtomicInteger count = new AtomicInteger(0);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
@@ -105,6 +106,9 @@ public class KeyValueStore{
             //Request unsuccessful
             System.out.println("PUT REQUEST FAILED.");
         }
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("PUT EXEC TIME: " + (endTime - startTime) + "mS");
     }
 
     public void execute_ptupdate(String key,Integer self_host_id){
@@ -127,6 +131,7 @@ public class KeyValueStore{
 
     public void execute_get(String key){
         // TODO: Add timing code to measure time required to complete the GET request
+        long startTime = System.currentTimeMillis();
 
         if (this.local_store.containsKey(key)) {
             System.out.println("Key " + key + " found locally.");
@@ -162,17 +167,20 @@ public class KeyValueStore{
 
                     send_get_socket.close();
                 } catch(Exception e){
-                    System.out.println("Exception occured when writing query to output stream in SendPutRequestThread");
+                    e.printStackTrace();
                 }
             }
             
         }
 
+        long endTime = System.currentTimeMillis();
+        System.out.println("GET EXEC TIME: " + (endTime - startTime) + "mS");
         
     }
 
     public void execute_store(){
         // TODO: Add timing code to measure time required to complete the STORE request
+        long startTime = System.currentTimeMillis();
 
         // HashMap to store combined local stores of all the nodes
         ConcurrentHashMap<String,String> total_map = new ConcurrentHashMap<String,String>();
@@ -201,10 +209,13 @@ public class KeyValueStore{
         total_map.forEach((key,value)->{
             System.out.println(key + "\t \t" +value);
         });
+        long endTime = System.currentTimeMillis();
+        System.out.println("STORE EXEC TIME: " + (endTime - startTime) + "mS");
     }
     
     public void execute_delete(String key){
         // TODO: Add timing code to measure time required to complete the DELETE request
+        long startTime = System.currentTimeMillis();
 
         if (!this.local_store.containsKey(key)) {
             System.out.println("Invalid Request: The key " + key + " does not exist at this node.");
@@ -226,6 +237,9 @@ public class KeyValueStore{
             } 
             
         });
+
+        long endTime = System.currentTimeMillis();
+        System.out.println("DELETE EXEC TIME: " + (endTime - startTime) + "mS");
         
     }
 
