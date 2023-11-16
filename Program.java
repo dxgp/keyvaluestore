@@ -1,37 +1,24 @@
 import java.util.concurrent.TimeUnit;
+import java.rmi.registry.LocateRegistry;
 import java.util.Scanner;
 
 import storage.KeyValueStore;
 public class Program {
     public static void main(String[] args) {
         int host_id = Integer.parseInt(args[0]);
+        if(host_id==0){
+            try{
+                LocateRegistry.createRegistry(10000);
+            } catch(Exception e){e.printStackTrace();}
+        }
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),10000);
         kv_store.initialize_peers();
-        if(args.length==3 && args[2].equals("--debug")){
+        if(args.length==2){
             Scanner sc = new Scanner(System.in);
             while(true){
                 String query = sc.nextLine();
                 execute_query(query,kv_store);
             }
-        }
-        if(host_id==0){
-            kv_store.execute_put("10","asdf8asdf");
-            kv_store.execute_put("11","asdfa");
-            kv_store.execute_put("12","sdgcxb");
-            kv_store.execute_put("13","qwerui");
-            kv_store.execute_put("14","sdvoaoi");
-            kv_store.execute_put("15","qweiufdx");
-        }
-        else{
-            try{
-                TimeUnit.SECONDS.sleep(1);
-            } catch(Exception e){}
-            if(host_id==1){
-                kv_store.execute_store();
-                kv_store.execute_delete("12");
-                kv_store.execute_store();
-            }
-            
         }
     }
     public static void execute_query(String query,KeyValueStore kv_store){
