@@ -9,5 +9,6 @@ public interface StorageService extends Remote{
     ConcurrentHashMap<String,String> store() throws RemoteException;
     String delete(String key) throws RemoteException;
     String test_call() throws RemoteException;
+    void exit(Integer host_id) throws RemoteException;
     String ptupdate(String key,Integer host_id) throws RemoteException;
 }

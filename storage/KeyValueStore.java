@@ -1,4 +1,5 @@
 package storage;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -14,6 +15,7 @@ import threads.SendPTUpdateThread;
 import java.util.concurrent.atomic.AtomicInteger;
 import threads.SendStoreRequestThread;
 import threads.DeleteRequestThread;
+import threads.SendExitRequestThread;
 
 
 public class KeyValueStore implements StorageService{
@@ -24,17 +26,15 @@ public class KeyValueStore implements StorageService{
     Registry rmi_registry;
     public int host_id;
     public int total_host_count;
-    public int key_count;
-    public KeyValueStore(int host_id,int total_host_count,int key_count,int registry_port){
+    public KeyValueStore(int host_id,int total_host_count,int registry_port){
         this.local_store = new ConcurrentHashMap<>();
         this.peer_table = new ConcurrentHashMap<>();
         this.keys_random_pairs = new ConcurrentHashMap<>();
         this.host_stubs = new ConcurrentHashMap<>();
-        this.key_count = key_count;
         this.total_host_count = total_host_count;
         this.host_id = host_id;
         try{
-            this.rmi_registry = LocateRegistry.getRegistry(registry_port);
+            this.rmi_registry = LocateRegistry.getRegistry("localhost",registry_port);
             StorageService stub = (StorageService) UnicastRemoteObject.exportObject(this, 0);
             this.rmi_registry.bind("h"+this.host_id, stub);
             System.out.println("Connected to RMI Registry");
@@ -64,7 +64,6 @@ public class KeyValueStore implements StorageService{
     }
 
     //Implementations of local calls for the given operations
-    // Decided to make the broadcasts multithreaded...
     public void execute_put(String key,String value){
         System.out.println("Executing PUT "+key+" "+value);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
@@ -143,6 +142,19 @@ public class KeyValueStore implements StorageService{
             System.out.println("An exception occured in broadcast executor while broadcasting PTUPDATE");
         }
     }
+    public void execute_exit(){
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        this.host_stubs.forEach((h_id,host_stub)->{
+            broadcast_executor.execute(new SendExitRequestThread(host_stub,host_id));
+        });
+        try{
+            broadcast_executor.shutdown();
+            broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
+            System.exit(0);
+        } catch(Exception e){
+            System.out.println("An exception occured in broadcast executor while broadcasting EXIT");
+        }
+    } 
 
     //Implementation of remote calls for these implementations
     public String put(String key,String value,int request_random){
@@ -182,5 +194,16 @@ public class KeyValueStore implements StorageService{
         System.out.println("Received PTUPDATE "+key+" "+host_id);
         peer_table.put(key, host_id);
         return "EXECUTED";
+    }
+    public void exit(Integer host_id){
+        System.out.println("Received EXIT for host:"+host_id);
+        // clear the peer table entries
+        for (Map.Entry<String, Integer> entry : peer_table.entrySet()) {
+            if(entry.getValue() == host_id){
+                peer_table.remove(entry.getKey());
+            }
+        }
+        total_host_count = total_host_count - 1; //decrement total host count
+        host_stubs.remove(host_id); //remove the stubs
     }
 }

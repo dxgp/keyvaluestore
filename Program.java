@@ -5,9 +5,9 @@ import storage.KeyValueStore;
 public class Program {
     public static void main(String[] args) {
         int host_id = Integer.parseInt(args[0]);
-        KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),Integer.parseInt(args[2]),15000);
+        KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),10000);
         kv_store.initialize_peers();
-        if(args.length==4 && args[3].equals("--debug")){
+        if(args.length==3 && args[2].equals("--debug")){
             Scanner sc = new Scanner(System.in);
             while(true){
                 String query = sc.nextLine();
@@ -36,18 +36,20 @@ public class Program {
     }
     public static void execute_query(String query,KeyValueStore kv_store){
         String[] query_terms = query.split("\\ ");
-        if(query_terms[0].equals("PUT")){
+        if(query_terms[0].equals("PUT") && query_terms.length==3){
             String key = query_terms[1];
             String value = query_terms[2];
             kv_store.execute_put(key, value);
-        } else if(query_terms[0].equals("GET")){
+        } else if(query_terms[0].equals("GET")  && query_terms.length==2){
             String key = query_terms[1];
             kv_store.execute_get(key);
-        } else if(query_terms[0].equals("DELETE")){
+        } else if(query_terms[0].equals("DELETE")  && query_terms.length==2){
             String key = query_terms[1];
             kv_store.execute_delete(key);
         } else if(query_terms[0].equals("STORE")){
             kv_store.execute_store();
+        } else if(query_terms[0].equals("EXIT")){
+            kv_store.execute_exit();
         } else {
             System.out.println("Illegal Query!");
         }
