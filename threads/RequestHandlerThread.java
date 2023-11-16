@@ -40,7 +40,11 @@ public class RequestHandlerThread implements Runnable{
                     String key = query_terms[1];
                     int host_id = Integer.parseInt(query_terms[2]);
                     kv_store.handle_ptupdate(key, host_id, socket);
-                } else{
+                } else if(query_terms[0].equals("EXIT")){
+                    int host_id = Integer.parseInt(query_terms[1]);
+                    kv_store.handle_exit(host_id,socket);
+                }
+                else{
                     System.out.println("INVALID QUERY RECEIVED");
                 }
                 System.out.println("**RECEIVED QUERY PROCESSING FINISHED**");

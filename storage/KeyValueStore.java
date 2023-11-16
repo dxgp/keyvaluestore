@@ -19,6 +19,8 @@ import threads.HandlePTUpdateThread;
 import threads.HandleStoreThread;
 import threads.HandleDeleteThread;
 import threads.RequestListenThread;
+import threads.SendExitRequestThread;
+import threads.HandleExitThread;
 
 
 public class KeyValueStore{
@@ -128,6 +130,7 @@ public class KeyValueStore{
         } catch(Exception e){e.printStackTrace();}
     }
     public void execute_delete(String key){
+        System.out.println("Executing DELETE "+key);
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         this.local_store.remove(key);
         this.peers.forEach((h_id,sock)->{
@@ -138,6 +141,19 @@ public class KeyValueStore{
             broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
         } catch(Exception e){e.printStackTrace();}
     }
+    public void execute_exit(){
+        System.out.println("EXECUTING EXIT");
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        this.peers.forEach((h_id,sock)->{
+            broadcast_executor.execute(new SendExitRequestThread(sock,this.host_id));
+        });
+        broadcast_executor.shutdown();
+        try{
+            broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
+        } catch(Exception e){e.printStackTrace();}
+        System.exit(0);
+    }
+    
     public void handle_put(String key,String value,Integer recvd_rand,Socket socket){
         query_executor.execute(new HandlePutThread(this,key, value,recvd_rand,socket));
     }
@@ -152,5 +168,8 @@ public class KeyValueStore{
     }
     public void handle_ptupdate(String key,Integer host_id,Socket socket){
         query_executor.execute(new HandlePTUpdateThread(this,key,host_id,socket));
+    }
+    public void handle_exit(int host_id,Socket socket){
+        query_executor.execute(new HandleExitThread(this,host_id,socket));
     }
 }
