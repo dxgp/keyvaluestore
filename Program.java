@@ -7,8 +7,15 @@ public class Program{
     public static void main(String[] args) {
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]));
         String[] ip_list = new String[20];
-        for(int i=2;i<args.length;i++){
-            ip_list[i-2] = args[i];
+        if(args.length>2){
+            for(int i=2;i<args.length;i++){
+                ip_list[i-2] = args[i];
+            }
+        }
+        else{
+            for(int i=0;i<kv_store.total_host_count;i++){
+                ip_list[i] = "localhost";
+            }
         }
         kv_store.initialize_peers(ip_list);
         Scanner sc = new Scanner(System.in);
@@ -36,7 +43,6 @@ public class Program{
                 } else{
                     System.out.println("INVALID QUERY PROVIDED");
                 }
-                System.out.println("**QUERY EXECUTION COMPLETE**");
                 TimeUnit.MILLISECONDS.sleep(50);
             } catch(Exception e){e.printStackTrace();}
         }

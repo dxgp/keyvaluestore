@@ -73,6 +73,7 @@ public class KeyValueStore{
         final AtomicInteger count = new AtomicInteger(0);
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
+        keys_random_pairs.put(key, self_random);
         this.peers.forEach((host_id,sock)->{
             System.out.println("Sent to host id:"+host_id);
             broadcast_executor.execute(new SendPutRequestThread(sock, key, value, count,self_random));
@@ -95,6 +96,10 @@ public class KeyValueStore{
     }
     public void execute_get(String key){
         System.out.println("Executing GET "+key);
+        if(local_store.containsKey(key)){
+            System.out.println("GET query executed. Returned "+local_store.get(key));
+            return;
+        }
         int key_holder = peer_table.get(key);
         Socket sock = this.peers.get(key_holder);
         String request = "GET "+key + "\n";
