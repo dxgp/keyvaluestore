@@ -2,6 +2,9 @@ package threads;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.net.Socket;
 
+/*
+ * A thread for sending the put request.
+ */
 public class SendPutRequestThread implements Runnable {
     Socket sock;
     String key;

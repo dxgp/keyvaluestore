@@ -5,6 +5,10 @@ import storage.KeyValueStore;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+/*
+ * A thread to listen to incoming requests. Hands the request over to RequestHandlerThread for parsing
+ * and then returns to listening.
+ */
 public class RequestListenThread implements Runnable{
     int host_id;
     KeyValueStore kv_store;

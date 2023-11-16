@@ -2,6 +2,9 @@ package threads;
 
 import java.net.Socket;
 
+/*
+ * A thread for sending the exit request.
+ */
 public class SendExitRequestThread implements Runnable{
     Socket sock;
     Integer host_id;

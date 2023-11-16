@@ -4,6 +4,9 @@ import storage.KeyValueStore;
 
 import java.net.Socket;
 
+/*
+ * A thread for handling an incoming PUT request from another node.
+ */
 public class HandlePutThread implements Runnable {
     KeyValueStore kv_store;
     String key;

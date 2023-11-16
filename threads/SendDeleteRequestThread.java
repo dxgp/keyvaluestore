@@ -1,6 +1,9 @@
 package threads;
 import java.net.Socket;
 
+/*
+ * A thread for sending the delete request thread.
+ */
 public class SendDeleteRequestThread implements Runnable{
     Socket sock;
     String key;

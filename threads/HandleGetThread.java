@@ -4,6 +4,9 @@ import java.net.Socket;
 
 import storage.KeyValueStore;
 
+/*
+ * A thread for handling an incoming EXIT request from another node.
+ */
 public class HandleGetThread implements Runnable {
     KeyValueStore kv_store;
     String key;
@@ -15,9 +18,8 @@ public class HandleGetThread implements Runnable {
     }
     public void run(){
         try{
-            // DataOutputStream dos = new DataOutputStream(reply_socket.getOutputStream());
+            // if it contains key, return the key.
             if(kv_store.local_store.containsKey(key)){
-                // dos.writeBytes(kv_store.local_store.get(key)+"\n");
                 reply_socket.getOutputStream().write((kv_store.local_store.get(key)+"\n").getBytes());
                 reply_socket.getOutputStream().flush();
             } else{

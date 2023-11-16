@@ -4,6 +4,9 @@ import java.net.Socket;
 
 import storage.KeyValueStore;
 
+/*
+ * A thread for handling an incoming PTUPDATE request from another node.
+ */
 public class HandlePTUpdateThread implements Runnable {
     KeyValueStore kv_store;
     String key;
@@ -21,7 +24,7 @@ public class HandlePTUpdateThread implements Runnable {
                 System.out.println("Key already exists in peer table");
                 socket.getOutputStream().write(("ERR\n").getBytes());
             } else{
-                kv_store.peer_table.put(key, host_id);
+                kv_store.peer_table.put(key, host_id); //add entry to peer table
                 socket.getOutputStream().write(("EXECUTED\n").getBytes());
             }
             socket.getOutputStream().flush();

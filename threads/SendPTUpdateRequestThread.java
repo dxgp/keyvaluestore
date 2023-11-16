@@ -1,6 +1,9 @@
 package threads;
 import java.net.Socket;
 
+/*
+ * A thread for sending the PTUPDATE request.
+ */
 public class SendPTUpdateRequestThread implements Runnable {
     Socket sock;
     String key;

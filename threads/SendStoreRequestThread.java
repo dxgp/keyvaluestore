@@ -2,6 +2,9 @@ package threads;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 
+/*
+ * A thread for sending the store request.
+ */
 public class SendStoreRequestThread implements Runnable{
     Socket sock;
     Integer host_id;

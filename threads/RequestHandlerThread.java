@@ -5,6 +5,9 @@ import java.util.Arrays;
 
 import storage.KeyValueStore;
 
+/*
+ * A thread to parse the request and spawn the necessary handler thread.
+ */
 public class RequestHandlerThread implements Runnable{
     Socket socket;
     KeyValueStore kv_store;

@@ -5,6 +5,9 @@ import java.util.Map;
 
 import storage.KeyValueStore;
 
+/*
+ * A thread for handling an incoming STORE request from another node.
+ */
 public class HandleStoreThread implements Runnable {
     KeyValueStore kv_store;
     Socket socket;
