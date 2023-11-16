@@ -1,3 +1,4 @@
+import java.io.FileWriter;
 import java.util.concurrent.TimeUnit;
 
 import storage.KeyValueStore;
@@ -17,39 +18,40 @@ public class Benchmarking {
             long[] store_times = new long[num_runs];
             long[] delete_times = new long[num_runs];
             for(int i=0;i<num_runs;i++){
-                long startTime = System.currentTimeMillis();
+                long startTime = System.nanoTime();
                 kv_store.execute_put(""+i, ""+i);
-                long endTime = System.currentTimeMillis();
+                long endTime = System.nanoTime();
                 put_times[i] = endTime - startTime;
             }
             try{TimeUnit.MILLISECONDS.sleep(50);}catch(Exception e){}
             while(!kv_store.peer_table.containsKey("TEST_KEY"+9));
             for(int i=0;i<num_runs;i++){
-                long startTime = System.currentTimeMillis();
+                long startTime = System.nanoTime();
                 kv_store.execute_get("TEST_KEY"+i);
-                long endTime = System.currentTimeMillis();
+                long endTime = System.nanoTime();
                 get_times[i] = endTime - startTime;
             }
             try{TimeUnit.MILLISECONDS.sleep(50);}catch(Exception e){}
             for(int i=0;i<num_runs;i++){
-                long startTime = System.currentTimeMillis();
+                long startTime = System.nanoTime();
                 kv_store.execute_store();
-                long endTime = System.currentTimeMillis();
+                long endTime = System.nanoTime();
                 store_times[i] = endTime - startTime;
             }
             try{TimeUnit.MILLISECONDS.sleep(50);}catch(Exception e){}
             for(int i=0;i<num_runs;i++){
-                long startTime = System.currentTimeMillis();
+                long startTime = System.nanoTime();
                 kv_store.execute_delete(""+i);
-                long endTime = System.currentTimeMillis();
+                long endTime = System.nanoTime();
                 delete_times[i] = endTime - startTime;
             }
             System.out.println("***********************************************************");
             System.out.println("********************BENCHMARKING RESULTS*******************");
-            System.out.println("GET QUERY:   \t--"+array_avg(get_times) + " ms");
-            System.out.println("PUT QUERY:   \t--"+array_avg(put_times) + " ms");
-            System.out.println("DELETE QUERY:\t--"+array_avg(delete_times) + " ms");
-            System.out.println("STORE QUERY: \t--"+array_avg(store_times) + " ms");
+            System.out.println("GET QUERY:   \t--"+array_avg(get_times)/100000 + " ms");
+            System.out.println("PUT QUERY:   \t--"+array_avg(put_times)/100000 + " ms");
+            System.out.println("DELETE QUERY:\t--"+array_avg(delete_times)/100000 + " ms");
+            System.out.println("STORE QUERY: \t--"+array_avg(store_times)/100000 + " ms");
+
         } else if(kv_store.host_id == 1){
             while(!kv_store.peer_table.containsKey(""+9));
             System.out.println("Host 1 put test completed. Now adding test keys and vals for get");
@@ -65,5 +67,15 @@ public class Benchmarking {
             total_time += times[i];
         }
         return total_time/times.length;
+    }
+    static void write_to_csv(long[] wasp,String file_name){
+        try{
+            FileWriter writer = new FileWriter(file_name+".csv");
+            for (int j = 0; j < wasp.length; j++) {
+                writer.append(String.valueOf(wasp[j]));
+                writer.append(",");
+            }
+            writer.close();
+        } catch(Exception e){e.printStackTrace();}
     }
 }
