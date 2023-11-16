@@ -1,6 +1,7 @@
 package storage;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.rmi.Naming;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
@@ -36,9 +37,13 @@ public class KeyValueStore implements StorageService{
         this.total_host_count = total_host_count;
         this.host_id = host_id;
         try{
-            this.rmi_registry = LocateRegistry.getRegistry("localhost",registry_port);
+            try{
+                LocateRegistry.createRegistry(10000+host_id);
+            } catch(Exception e){e.printStackTrace();}
+            int t_hid = 10000+host_id;
+            this.rmi_registry = LocateRegistry.getRegistry("localhost",t_hid);
             StorageService stub = (StorageService) UnicastRemoteObject.exportObject(this, 0);
-            this.rmi_registry.bind("h"+this.host_id, stub);
+            Naming.bind("rmi://localhost:"+t_hid+"/h"+host_id, stub);
             System.out.println("Connected to RMI Registry");
         } catch(Exception e){
             System.out.println("Cannot connect to RMI registry. Did you forget to start it?");
@@ -46,14 +51,15 @@ public class KeyValueStore implements StorageService{
         }
     }
     // A function to attempt connecting to all hosts before proceeding with requests...
-    public void initialize_peers(){
+    public void initialize_peers(String[] ip_list){
         System.out.println("Attempting to connect to host.");
         for(int i=0;i<total_host_count;i++){
             if(i!=host_id){
                 boolean connected = false;
                 while(connected!=true){
                     try{
-                        StorageService stub = (StorageService) rmi_registry.lookup("h"+i);
+                        // StorageService stub = (StorageService) rmi_registry.lookup("h"+i);
+                        StorageService stub = (StorageService) Naming.lookup("rmi://localhost:"+(10000+i)+"/h"+i);
                         if(stub.test_call().equals("ONLINE")){
                             connected = true;
                             host_stubs.put(i,stub);

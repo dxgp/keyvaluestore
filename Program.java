@@ -6,19 +6,23 @@ import storage.KeyValueStore;
 public class Program {
     public static void main(String[] args) {
         int host_id = Integer.parseInt(args[0]);
-        if(host_id==0){
-            try{
-                LocateRegistry.createRegistry(10000);
-            } catch(Exception e){e.printStackTrace();}
-        }
         KeyValueStore kv_store = new KeyValueStore(Integer.parseInt(args[0]),Integer.parseInt(args[1]),10000);
-        kv_store.initialize_peers();
-        if(args.length==2){
-            Scanner sc = new Scanner(System.in);
-            while(true){
-                String query = sc.nextLine();
-                execute_query(query,kv_store);
+        String[] ip_list = new String[kv_store.total_host_count];
+        if(args.length>2){
+            for(int i=2;i<args.length;i++){
+                ip_list[i-2] = args[i];
             }
+        }
+        else{
+            for(int i=0;i<kv_store.total_host_count;i++){
+                ip_list[i] = "localhost";
+            }
+        }
+        kv_store.initialize_peers(ip_list);
+        Scanner sc = new Scanner(System.in);
+        while(true){
+            String query = sc.nextLine();
+            execute_query(query,kv_store);
         }
     }
     public static void execute_query(String query,KeyValueStore kv_store){
