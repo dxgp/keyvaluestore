@@ -53,6 +53,7 @@ public class KeyValueStore{
 
         (new Thread(new RequestListenThread(host_id,this))).start();
     }
+
     public void initialize_peers(String[] args){
         for(int i = 2; i < 1 + this.total_host_count; i++){
             // host_id:ip is being split here
@@ -63,6 +64,7 @@ public class KeyValueStore{
         System.out.println(this.peers);
     }
 
+    // Execute PUT locally and broadcast PTUPDATE message once PUT is done
     public void execute_put(String key,String value){
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         if (this.voted_on.containsKey(key)) {
@@ -109,6 +111,7 @@ public class KeyValueStore{
 
     }
 
+    // Broadcast PTUPDATE message to tell the peers to update their peer tables for this key
     public void execute_ptupdate(String key,Integer self_host_id){
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         this.peers.forEach((peer_host_id,address)->{
@@ -120,7 +123,10 @@ public class KeyValueStore{
         try{broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);} catch(Exception e){e.printStackTrace();}
     }
 
+    // Retreive the value for key and display it
     public void execute_get(String key){
+
+        // Check in local store
         if (this.local_store.containsKey(key)) {
             System.out.println("Key " + key + " found locally.");
             String value = this.local_store.get(key);
@@ -128,14 +134,14 @@ public class KeyValueStore{
         } else {
             System.out.println("Looking for key " + key + " in peer table.");
 
+            // Check in peer table
             if (!peer_table.containsKey(key)) {
                 System.out.println("Key not found in peer table. Key does not exist in the system.");
             } else {
                 int key_holder_host_id = peer_table.get(key);
-                // System.out.println("Key found in peer table. Querying host " + key_holder_host_id + " for the key");
                 String request = "GET "+ key;
                 try{
-                    // Retreive holder's ip and port for sending request
+                    // Retreive key holder's ip and port for sending request
                     String holder_address = this.peers.get(key_holder_host_id);
                     int holder_port = 10000 + key_holder_host_id;
 
@@ -146,7 +152,7 @@ public class KeyValueStore{
                     DatagramPacket packet = new DatagramPacket(buf, buf.length, holder_inet, holder_port);
                     send_get_socket.send(packet);
 
-                    // Receive value from holder
+                    // Receive value from holder host
                     byte[] ack_buf = new byte[500];
                     DatagramPacket ack_packet = new DatagramPacket(ack_buf, ack_buf.length);
                     send_get_socket.receive(ack_packet);
@@ -163,6 +169,7 @@ public class KeyValueStore{
         
     }
 
+    // Show all the keys and their corresponding values in the system
     public void execute_store(){
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         // HashMap to store combined local stores of all the nodes
@@ -171,6 +178,7 @@ public class KeyValueStore{
         // Append this node's local store to total_map
         total_map.putAll(this.local_store);
 
+        // Broadcast store request to receive peers local stores in total_map
         this.peers.forEach((peer_host_id,address)->{
             try {
                 broadcast_executor.execute(new SendStoreRequestThread(peer_host_id, address, total_map));
@@ -178,6 +186,8 @@ public class KeyValueStore{
         });
         broadcast_executor.shutdown();
         try{broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);} catch(Exception e){e.printStackTrace();}
+
+        // Display the table
         System.out.println("**TABLE**");
         total_map.forEach((key,value)->{
             System.out.println(key + "\t \t" +value);
@@ -221,18 +231,18 @@ public class KeyValueStore{
         
     }
 
-    // Receiving methods
+    // Receiving methods. These methods perform the tasks required after a request is received
     public void handle_put(String key, String value, Integer recvd_rand, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandlePutThread hp_thread = new HandlePutThread(this, key, value, recvd_rand, socket, reply_address, reply_port);
         (new Thread(hp_thread)).start();
     }
 
-    public void handle_ptupdate(String key,Integer host_id,DatagramSocket socket, InetAddress reply_address, Integer reply_port){
+    public void handle_ptupdate(String key, Integer host_id, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandlePTUpdateThread hpt_thread = new HandlePTUpdateThread(this, key, host_id, socket, reply_address, reply_port);
         (new Thread(hpt_thread)).start();
     }
 
-    public void handle_get(String key,DatagramSocket socket, InetAddress reply_address, Integer reply_port){
+    public void handle_get(String key, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandleGetThread hg_thread = new HandleGetThread(this, key, socket, reply_address, reply_port);
         (new Thread(hg_thread)).start();
     }
