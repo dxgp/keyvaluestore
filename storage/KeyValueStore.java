@@ -1,18 +1,10 @@
 package storage;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
+
 import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.HashMap;
@@ -43,6 +35,7 @@ public class KeyValueStore{
     public ConcurrentHashMap<String,Integer> peer_table;
     public ConcurrentHashMap<String,Integer> keys_random_pairs;
     public HashMap<Integer, String> peers;
+    public ConcurrentHashMap<String, Boolean> voted_on;
 
     public int host_id;
     public int total_host_count;
@@ -52,9 +45,11 @@ public class KeyValueStore{
         this.local_store = new ConcurrentHashMap<String,String>(){};
         this.peer_table = new ConcurrentHashMap<String,Integer>();
         this.keys_random_pairs = new ConcurrentHashMap<String,Integer>();
+        this.voted_on = new ConcurrentHashMap<String, Boolean>();
         this.peers = new HashMap<Integer, String>();
         this.total_host_count = total_host_count;
         this.host_id = host_id;
+
 
         (new Thread(new RequestListenThread(host_id,this))).start();
     }
@@ -69,6 +64,18 @@ public class KeyValueStore{
     }
 
     public void execute_put(String key,String value){
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
+        if (this.voted_on.containsKey(key)) {
+            System.out.println("Key is already voted on");
+            return;
+        } else if (this.local_store.containsKey(key)) {
+            System.out.println("Key already exists in local store");
+            return;
+        } else if (this.peer_table.containsKey(key)) {
+            System.out.println("Key exists in peer table");
+            return;
+        }
+
 
         final AtomicInteger count = new AtomicInteger(0);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
@@ -78,20 +85,13 @@ public class KeyValueStore{
         this.peers.forEach((host_id,address)->{
             System.out.println("Sent to host id: " + host_id);
             try {
-                Thread th = new Thread(new SendPutRequestThread(host_id, address, key, value, count, self_random));
-                th.start();
-                th.join();
-                
-            } catch (SocketException e) {
+                broadcast_executor.execute(new SendPutRequestThread(host_id, address, key, value, count, self_random));
+            } catch (Exception e) {
                 e.printStackTrace();
-            } catch (UnknownHostException e1) {
-                e1.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            
+            }  
         });
-
+        broadcast_executor.shutdown();
+        try{broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);} catch(Exception e){e.printStackTrace();}
         if(count.intValue()==(this.total_host_count - 1)){
             // Request successful
             this.local_store.put(key, value);
@@ -110,25 +110,17 @@ public class KeyValueStore{
     }
 
     public void execute_ptupdate(String key,Integer self_host_id){
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         this.peers.forEach((peer_host_id,address)->{
-            Thread th;
             try {
-                th = new Thread(new SendPTUpdateRequestThread(peer_host_id, address, key, self_host_id));
-                th.start();
-                th.join();
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            }catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (SocketException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
+                broadcast_executor.execute(new SendPTUpdateRequestThread(peer_host_id, address, key, self_host_id));
+            } catch(Exception e){e.printStackTrace();}
         });
+        broadcast_executor.shutdown();
+        try{broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);} catch(Exception e){e.printStackTrace();}
     }
 
     public void execute_get(String key){
-
         if (this.local_store.containsKey(key)) {
             System.out.println("Key " + key + " found locally.");
             String value = this.local_store.get(key);
@@ -172,7 +164,7 @@ public class KeyValueStore{
     }
 
     public void execute_store(){
-
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         // HashMap to store combined local stores of all the nodes
         ConcurrentHashMap<String,String> total_map = new ConcurrentHashMap<String,String>();
 
@@ -180,22 +172,12 @@ public class KeyValueStore{
         total_map.putAll(this.local_store);
 
         this.peers.forEach((peer_host_id,address)->{
-            Thread th;
             try {
-                th = new Thread(new SendStoreRequestThread(peer_host_id, address, total_map));
-                th.start();
-                th.join();
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (SocketException e) {
-                e.printStackTrace();
-            }
-            
-
+                broadcast_executor.execute(new SendStoreRequestThread(peer_host_id, address, total_map));
+            } catch(Exception e){e.printStackTrace();}
         });
-
+        broadcast_executor.shutdown();
+        try{broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);} catch(Exception e){e.printStackTrace();}
         System.out.println("**TABLE**");
         total_map.forEach((key,value)->{
             System.out.println(key + "\t \t" +value);
@@ -203,7 +185,7 @@ public class KeyValueStore{
     }
     
     public void execute_delete(String key){
-
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         if (!this.local_store.containsKey(key)) {
             System.out.println("Invalid Request: The key " + key + " does not exist at this node.");
             return;
@@ -216,31 +198,24 @@ public class KeyValueStore{
         this.peers.forEach((peer_host_id,address)->{
             Thread th;
             try {
-                th = new Thread(new SendDeleteRequestThread(peer_host_id, address, key));
-                th.start();
-                th.join();
-            } catch (UnknownHostException | SocketException | InterruptedException e) {
-                e.printStackTrace();
-            } 
-            
+                broadcast_executor.execute(new SendDeleteRequestThread(peer_host_id, address, key));
+            } catch(Exception e){e.printStackTrace();}
         });
+        broadcast_executor.shutdown();
+        try{broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);} catch(Exception e){e.printStackTrace();}
         
     }
 
     public void execute_exit(){
         // Broadcast exit request to all the peers to delete the entries for this host from their peer table
+        ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         this.peers.forEach((peer_host_id,address)->{
-            Thread th;
             try {
-                th = new Thread(new SendExitRequestThread(peer_host_id, address, this.host_id));
-                th.start();
-                th.join();
-            } catch (UnknownHostException | SocketException | InterruptedException e) {
-                e.printStackTrace();
-            } 
-            
+                broadcast_executor.execute(new SendExitRequestThread(peer_host_id, address, this.host_id));
+            } catch (Exception e) {e.printStackTrace();} 
         });
-
+        broadcast_executor.shutdown();
+        try{broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);} catch(Exception e){e.printStackTrace();}
         // Exit program
         System.exit(0);
         
