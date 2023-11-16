@@ -36,7 +36,7 @@ public class Benchmarking {
             try{TimeUnit.MILLISECONDS.sleep(50);}catch(Exception e){}
             for(int i=0;i<num_runs;i++){
                 long startTime = System.currentTimeMillis();
-                kv_store.execute_delete("TEST_KEY"+i);
+                kv_store.execute_delete(""+i);
                 long endTime = System.currentTimeMillis();
                 delete_times[i] = endTime - startTime;
             }
