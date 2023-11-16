@@ -54,11 +54,19 @@ public class KeyValueStore{
         (new Thread(new RequestListenThread(host_id,this))).start();
     }
 
+    // Initializes the peers ip addresses
     public void initialize_peers(String[] args){
-        for(int i = 2; i < 1 + this.total_host_count; i++){
+        for(int i = 2; i < 2 + this.total_host_count; i++){
             // host_id:ip is being split here
             String[] host_id_ips = args[i].split(":");
-            this.peers.put(Integer.parseInt(host_id_ips[0]), host_id_ips[1]);
+            
+            int host_id = Integer.parseInt(host_id_ips[0]);
+            // Skip self host id
+            if (host_id == this.host_id) {
+                continue;                
+            }
+
+            this.peers.put(host_id, host_id_ips[1]);
         }
         System.out.println("Peer adresses initialised:");
         System.out.println(this.peers);
