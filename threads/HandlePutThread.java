@@ -21,20 +21,16 @@ public class HandlePutThread implements Runnable {
         try{
             if(kv_store.local_store.containsKey(key) || kv_store.peer_table.containsKey(key)){
                 reply_socket.getOutputStream().write(("NO\n").getBytes());
-                System.out.println("REPLIED NO");
             } else{
                 if(kv_store.keys_random_pairs.containsKey(key)){
                     int self_random = kv_store.keys_random_pairs.get(key);
                     if(recvd_rand>self_random){
                         reply_socket.getOutputStream().write(("YES\n").getBytes());
-                        System.out.println("REPLIED YES");
                     } else{
                         reply_socket.getOutputStream().write(("NO\n").getBytes());
-                        System.out.println("REPLIED NO");
                     }
                 } else{
                     reply_socket.getOutputStream().write(("YES\n").getBytes());
-                    System.out.println("REPLIED YES");
                 }
             }
             reply_socket.getOutputStream().flush();

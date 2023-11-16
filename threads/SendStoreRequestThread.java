@@ -23,7 +23,6 @@ public class SendStoreRequestThread implements Runnable{
                 response += buf;
             }
             response = response.trim();
-            System.out.println("STORE RESP:"+response);
             ConcurrentHashMap<String,String> recvd_hm = new ConcurrentHashMap<String,String>();
             String[] rows = response.split("\\|");
             for(int i=0;i<rows.length;i++){

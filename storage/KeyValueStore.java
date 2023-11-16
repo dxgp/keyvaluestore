@@ -54,9 +54,9 @@ public class KeyValueStore{
                         connected = true;
                     } catch(Exception e){}
                 }
-                System.out.println("Conn established.");
             }
         }
+        System.out.println("Conn established.");
     }
     public void execute_put(String key,String value){
         final AtomicInteger count = new AtomicInteger(0);
@@ -85,12 +85,10 @@ public class KeyValueStore{
     public void execute_get(String key){
         System.out.println("Executing GET "+key);
         int key_holder = peer_table.get(key);
-        System.out.println("KEY HOLDER IS:"+key_holder);
         Socket sock = this.peers.get(key_holder);
         String request = "GET "+key + "\n";
         try{
             sock.getOutputStream().write(request.getBytes());
-            System.out.println("BYTES WRITTEN");
             char buf = '\0';
             String response = "";
             while(!(buf == '\n')){
@@ -140,6 +138,7 @@ public class KeyValueStore{
         try{
             broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
         } catch(Exception e){e.printStackTrace();}
+        System.out.println("DELETE EXECUTED");
     }
     public void execute_exit(){
         System.out.println("EXECUTING EXIT");

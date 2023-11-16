@@ -47,8 +47,7 @@ public class RequestHandlerThread implements Runnable{
                 else{
                     System.out.println("INVALID QUERY RECEIVED");
                 }
-                System.out.println("**RECEIVED QUERY PROCESSING FINISHED**");
-            } catch(Exception e){System.out.println("Exception in RequestHandlerThread");}
+            } catch(Exception e){System.out.println("Exception in RequestHandlerThread"); e.printStackTrace();}
         }
     }
 }

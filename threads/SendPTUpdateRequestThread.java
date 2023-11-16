@@ -15,7 +15,6 @@ public class SendPTUpdateRequestThread implements Runnable {
         try{
             sock.getOutputStream().write(request.getBytes());
             sock.getOutputStream().flush();
-            System.out.println("WROTE PTUPDATE TO OUT STREAM");
             char buf = '\0';
             String response = "";
             while(!(buf == '\n')){
