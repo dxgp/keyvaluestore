@@ -3,7 +3,7 @@ package storage;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-
+import java.net.Socket;
 import java.net.SocketException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,6 +40,7 @@ public class KeyValueStore{
     public int host_id;
     public int total_host_count;
     
+    ExecutorService query_executor;
 
     public KeyValueStore(int host_id,int total_host_count) throws SocketException{
         this.local_store = new ConcurrentHashMap<String,String>(){};
@@ -50,6 +51,7 @@ public class KeyValueStore{
         this.total_host_count = total_host_count;
         this.host_id = host_id;
 
+        this.query_executor = Executors.newFixedThreadPool(10);
 
         (new Thread(new RequestListenThread(host_id,this))).start();
     }
@@ -242,32 +244,32 @@ public class KeyValueStore{
     // Receiving methods. These methods perform the tasks required after a request is received
     public void handle_put(String key, String value, Integer recvd_rand, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandlePutThread hp_thread = new HandlePutThread(this, key, value, recvd_rand, socket, reply_address, reply_port);
-        (new Thread(hp_thread)).start();
+        query_executor.execute(hp_thread);
     }
 
     public void handle_ptupdate(String key, Integer host_id, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandlePTUpdateThread hpt_thread = new HandlePTUpdateThread(this, key, host_id, socket, reply_address, reply_port);
-        (new Thread(hpt_thread)).start();
+        query_executor.execute(hpt_thread);
     }
 
     public void handle_get(String key, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandleGetThread hg_thread = new HandleGetThread(this, key, socket, reply_address, reply_port);
-        (new Thread(hg_thread)).start();
+        query_executor.execute(hg_thread);
     }
     
     public void handle_store(DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandleStoreThread hs_thread = new HandleStoreThread(this, socket, reply_address, reply_port);
-        (new Thread(hs_thread)).start();
+        query_executor.execute(hs_thread);
     }
 
     public void handle_delete(String key, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandleDeleteThread hs_thread = new HandleDeleteThread(this, key, socket, reply_address, reply_port);
-        (new Thread(hs_thread)).start();
+        query_executor.execute(hs_thread);
     }
 
     public void handle_exit(String host_id, DatagramSocket socket, InetAddress reply_address, Integer reply_port){
         HandleExitThread he_thread = new HandleExitThread(this, host_id, socket, reply_address, reply_port);
-        (new Thread(he_thread)).start();
+        query_executor.execute(he_thread);
     }
     
 }

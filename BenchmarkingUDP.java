@@ -11,7 +11,7 @@ public class BenchmarkingUDP {
         for(int i=0;i<kv_store.total_host_count;i++){
             ip_list[i] = "localhost";
         }
-        
+
         if(kv_store.host_id==0){
             String[] peers = new String[4];
             peers[0] = "";
@@ -25,39 +25,43 @@ public class BenchmarkingUDP {
             long[] store_times = new long[num_runs];
             long[] delete_times = new long[num_runs];
             for(int i=0;i<num_runs;i++){
-                long startTime = System.currentTimeMillis();
+                long startTime = System.nanoTime();
                 kv_store.execute_put(""+i, ""+i);
-                long endTime = System.currentTimeMillis();
+                long endTime = System.nanoTime();
                 put_times[i] = endTime - startTime;
+                try{TimeUnit.MILLISECONDS.sleep(10);}catch(Exception e){}
             }
             try{TimeUnit.MILLISECONDS.sleep(50);}catch(Exception e){}
             while(!kv_store.peer_table.containsKey("TEST_KEY"+(num_runs-1)));
             for(int i=0;i<num_runs;i++){
-                long startTime = System.currentTimeMillis();
+                long startTime = System.nanoTime();
                 kv_store.execute_get("TEST_KEY"+i);
-                long endTime = System.currentTimeMillis();
+                long endTime = System.nanoTime();
                 get_times[i] = endTime - startTime;
+                try{TimeUnit.MILLISECONDS.sleep(10);}catch(Exception e){}
             }
             try{TimeUnit.MILLISECONDS.sleep(50);}catch(Exception e){}
             for(int i=0;i<num_runs;i++){
-                long startTime = System.currentTimeMillis();
+                long startTime = System.nanoTime();
                 kv_store.execute_store();
-                long endTime = System.currentTimeMillis();
+                long endTime = System.nanoTime();
                 store_times[i] = endTime - startTime;
+                try{TimeUnit.MILLISECONDS.sleep(10);}catch(Exception e){}
             }
             try{TimeUnit.MILLISECONDS.sleep(50);}catch(Exception e){}
             for(int i=0;i<num_runs;i++){
-                long startTime = System.currentTimeMillis();
-                kv_store.execute_delete("TEST_KEY"+i);
-                long endTime = System.currentTimeMillis();
+                long startTime = System.nanoTime();
+                kv_store.execute_delete(""+i);
+                long endTime = System.nanoTime();
                 delete_times[i] = endTime - startTime;
+                try{TimeUnit.MILLISECONDS.sleep(10);}catch(Exception e){}
             }
             System.out.println("***********************************************************");
             System.out.println("********************BENCHMARKING RESULTS*******************");
-            System.out.println("GET QUERY:   \t--"+array_avg(get_times) + " ms");
-            System.out.println("PUT QUERY:   \t--"+array_avg(put_times) + " ms");
-            System.out.println("DELETE QUERY:\t--"+array_avg(delete_times) + " ms");
-            System.out.println("STORE QUERY: \t--"+array_avg(store_times) + " ms");
+            System.out.println("GET QUERY:   \t--"+array_avg(get_times)/1000000 + " ms");
+            System.out.println("PUT QUERY:   \t--"+array_avg(put_times)/1000000 + " ms");
+            System.out.println("DELETE QUERY:\t--"+array_avg(delete_times)/1000000 + " ms");
+            System.out.println("STORE QUERY: \t--"+array_avg(store_times)/1000000 + " ms");
         } else if(kv_store.host_id == 1){
             String[] peers = new String[4];
             peers[0] = "";
@@ -70,6 +74,7 @@ public class BenchmarkingUDP {
             System.out.println("Host 1 put test completed. Now adding test keys and vals for get");
             for(int i=0;i<num_runs;i++){
                 kv_store.execute_put("TEST_KEY"+i, "TEST_VAL");
+                try{TimeUnit.MILLISECONDS.sleep(10);}catch(Exception e){}
             }
             try{TimeUnit.MILLISECONDS.sleep(50);}catch(Exception e){}
         }
