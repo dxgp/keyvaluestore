@@ -28,6 +28,9 @@ public class KeyValueStore{
     public ConcurrentHashMap<String,Integer> peer_table;
     public ConcurrentHashMap<String,Integer> keys_random_pairs;
     public ConcurrentHashMap<Integer,Socket> peers;
+
+    public ConcurrentHashMap<String,Boolean> voted_on;
+
     ExecutorService query_executor;
 
     public int host_id;
@@ -38,6 +41,7 @@ public class KeyValueStore{
         this.peer_table = new ConcurrentHashMap<String,Integer>();
         this.keys_random_pairs = new ConcurrentHashMap<String,Integer>();
         this.peers = new ConcurrentHashMap<Integer,Socket>();
+        this.voted_on = new ConcurrentHashMap<String,Boolean>();
         this.total_host_count = total_host_count;
         this.host_id = host_id;
         this.query_executor = Executors.newFixedThreadPool(10);
@@ -59,6 +63,13 @@ public class KeyValueStore{
         System.out.println("Conn established.");
     }
     public void execute_put(String key,String value){
+        if(voted_on.containsKey(key)==true){
+            System.out.println("Key exists in voted_on set. PUT not allowed.");
+            return;
+        } else if(local_store.containsKey(key) || peer_table.containsKey(key)){
+            System.out.println("Key already exists.");
+            return;
+        }
         final AtomicInteger count = new AtomicInteger(0);
         ExecutorService broadcast_executor = Executors.newFixedThreadPool(this.total_host_count);
         int self_random = ThreadLocalRandom.current().nextInt(0, 1000);
@@ -125,6 +136,7 @@ public class KeyValueStore{
         try{
             broadcast_executor.awaitTermination(300L, TimeUnit.SECONDS);
             System.out.println("PTUPDATE EXECUTED");
+            voted_on.remove(key);
         } catch(Exception e){e.printStackTrace();}
     }
     public void execute_delete(String key){

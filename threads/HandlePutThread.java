@@ -19,6 +19,14 @@ public class HandlePutThread implements Runnable {
     }
     public void run(){
         try{
+            // if(kv_store.host_id==2 || kv_store.host_id==1){
+            //     Thread.sleep(10000);
+            // }
+            if(kv_store.voted_on.containsKey(key)){
+                reply_socket.getOutputStream().write(("NO\n").getBytes());
+            } else{
+                kv_store.voted_on.put(key, true);
+            }
             if(kv_store.local_store.containsKey(key) || kv_store.peer_table.containsKey(key)){
                 reply_socket.getOutputStream().write(("NO\n").getBytes());
             } else{

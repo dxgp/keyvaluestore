@@ -1,0 +1,26 @@
+@startuml
+class KeyValueStore {
+  - local_store: ConcurrentHashMap<String, String>
+  - peer_table: ConcurrentHashMap<String, Integer>
+  - keys_random_pairs: ConcurrentHashMap<String, Integer>
+  - peers: ConcurrentHashMap<Integer, Socket>
+  - query_executor: ExecutorService
+  - host_id: int
+  - total_host_count: int
+
+  + KeyValueStore(host_id: int, total_host_count: int)
+  + initialize_peers(ip_list: String[])
+  + execute_put(key: String, value: String)
+  + execute_get(key: String)
+  + execute_store()
+  + execute_ptupdate(key: String, host_id: Integer)
+  + execute_delete(key: String)
+  + execute_exit()
+  + handle_put(key: String, value: String, recvd_rand: Integer, socket: Socket)
+  + handle_get(key: String, socket: Socket)
+  + handle_store(socket: Socket)
+  + handle_delete(key: String, socket: Socket)
+  + handle_ptupdate(key: String, host_id: Integer, socket: Socket)
+  + handle_exit(host_id: int, socket: Socket)
+}
+@enduml
