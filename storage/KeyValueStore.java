@@ -40,10 +40,6 @@ public class KeyValueStore implements StorageService{
             try{
                 LocateRegistry.createRegistry(10000+host_id);
             } catch(Exception e){e.printStackTrace();}
-            int t_hid = 10000+host_id;
-            this.rmi_registry = LocateRegistry.getRegistry("localhost",t_hid);
-            StorageService stub = (StorageService) UnicastRemoteObject.exportObject(this, 0);
-            Naming.bind("rmi://localhost:"+t_hid+"/h"+host_id, stub);
             System.out.println("Connected to RMI Registry");
         } catch(Exception e){
             System.out.println("Cannot connect to RMI registry. Did you forget to start it?");
@@ -52,6 +48,12 @@ public class KeyValueStore implements StorageService{
     }
     // A function to attempt connecting to all hosts before proceeding with requests...
     public void initialize_peers(String[] ip_list){
+        try{
+            int t_hid = 10000+host_id;
+            this.rmi_registry = LocateRegistry.getRegistry(ip_list[host_id],t_hid);
+            StorageService stub_ = (StorageService) UnicastRemoteObject.exportObject(this, 0);
+            Naming.bind("rmi://"+ip_list[host_id]+":"+t_hid+"/h"+host_id, stub_);
+        } catch(Exception e){}
         System.out.println("Attempting to connect to host.");
         for(int i=0;i<total_host_count;i++){
             if(i!=host_id){
@@ -59,7 +61,7 @@ public class KeyValueStore implements StorageService{
                 while(connected!=true){
                     try{
                         // StorageService stub = (StorageService) rmi_registry.lookup("h"+i);
-                        StorageService stub = (StorageService) Naming.lookup("rmi://localhost:"+(10000+i)+"/h"+i);
+                        StorageService stub = (StorageService) Naming.lookup("rmi://"+ip_list[i]+":"+(10000+i)+"/h"+i);
                         if(stub.test_call().equals("ONLINE")){
                             connected = true;
                             host_stubs.put(i,stub);
