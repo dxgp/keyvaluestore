@@ -13,10 +13,11 @@ public class BenchmarkingUDP {
         }
         
         if(kv_store.host_id==0){
-            String[] peers = new String[3];
+            String[] peers = new String[4];
             peers[0] = "";
             peers[1] = "";
-            peers[2] = "1:localhost"; 
+            peers[2] = "0:localhost";
+            peers[3] = "1:localhost"; 
             kv_store.initialize_peers(peers);
 
             long[] put_times = new long[num_runs];
@@ -58,10 +59,11 @@ public class BenchmarkingUDP {
             System.out.println("DELETE QUERY:\t--"+array_avg(delete_times) + " ms");
             System.out.println("STORE QUERY: \t--"+array_avg(store_times) + " ms");
         } else if(kv_store.host_id == 1){
-            String[] peers = new String[3];
+            String[] peers = new String[4];
             peers[0] = "";
             peers[1] = "";
             peers[2] = "0:localhost";
+            peers[3] = "1:localhost";
             kv_store.initialize_peers(peers);
 
             while(!kv_store.peer_table.containsKey(""+(num_runs-1)));
