@@ -34,13 +34,14 @@ public class HandlePutThread implements Runnable {
 
     public void run(){
         try{
-
-            if (kv_store.voted_on.containsKey(this.key)) {
-                this.sendPacket("NO");
-            } else {
-                kv_store.voted_on.put(key, true);
+            if(!kv_store.keys_random_pairs.containsKey(key)){
+                if(!(kv_store.local_store.containsKey(key) || kv_store.peer_table.containsKey(key))){
+                    this.sendPacket("YES");
+                } else{
+                    this.sendPacket("NO");
+                }
+                return;
             }
-
             // If the requested key is already taken by this node or some other node return NO
             if(kv_store.local_store.containsKey(key) || kv_store.peer_table.containsKey(key)){
                 this.sendPacket("NO");
@@ -48,6 +49,7 @@ public class HandlePutThread implements Runnable {
                 // If current node is working on same key resolve clash by comparing random no.s
                 if(kv_store.keys_random_pairs.containsKey(key)){
                     int self_random = kv_store.keys_random_pairs.get(key);
+                    System.err.println("COMPARING RANDOMS +++++++");
                     if(recvd_rand > self_random){
                         this.sendPacket("YES");
                     } else{
@@ -57,7 +59,6 @@ public class HandlePutThread implements Runnable {
                     this.sendPacket("YES");
                 }
             }
-
         } catch(Exception e){}
     }
 }
