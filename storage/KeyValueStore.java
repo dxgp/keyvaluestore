@@ -175,20 +175,24 @@ public class KeyValueStore implements StorageService{
     //Implementation of remote calls for these implementations
     public String put(String key,String value,int request_random){
         System.out.println("Received PUT "+key+" "+value);
-        if(voted_on.containsKey(key)){
-            return "NO";
-        } else{
-            voted_on.put(key, true);
+        if(!keys_random_pairs.containsKey(key)){
+            if(!(local_store.containsKey(key) || peer_table.containsKey(key))){
+                return "YES";
+            } else{
+                return "NO";
+            }
         }
+        // If the requested key is already taken by this node or some other node return NO
         if(local_store.containsKey(key) || peer_table.containsKey(key)){
             return "NO";
         } else{
+            // If current node is working on same key resolve clash by comparing random no.s
             if(keys_random_pairs.containsKey(key)){
                 int self_random = keys_random_pairs.get(key);
-                if(self_random > request_random){
-                    return "NO";
-                } else{
+                if(request_random > self_random){
                     return "YES";
+                } else{
+                    return "NO";
                 }
             } else{
                 return "YES";
